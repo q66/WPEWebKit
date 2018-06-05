@@ -156,6 +156,14 @@ static void initializeDebugCategory()
     });
 }
 
+gboolean dumpAfterSomeTime(gpointer user_data)
+{
+    printf("### %s: dumpAfterSomeTime: Dumping\n", __PRETTY_FUNCTION__); fflush(stdout);
+    GstElement* pipeline = static_cast<GstElement*>(user_data);
+    GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "dump-after-some-time");
+    return G_SOURCE_REMOVE;
+}
+
 MediaPlayerPrivateGStreamer::MediaPlayerPrivateGStreamer(MediaPlayer* player)
     : m_notifier(MainThreadNotifier<MainThreadNotification>::create())
     , m_player(player)
@@ -243,6 +251,9 @@ MediaPlayerPrivateGStreamer::~MediaPlayerPrivateGStreamer()
     }
 
     if (m_pipeline) {
+        printf("### %s: Deinstalling dumpAfterSomeTime timer\n", __PRETTY_FUNCTION__); fflush(stdout);
+        g_source_remove_by_user_data(m_pipeline.get());
+
         disconnectSimpleBusMessageCallback(m_pipeline.get());
         g_signal_handlers_disconnect_matched(m_pipeline.get(), G_SIGNAL_MATCH_DATA, 0, 0, nullptr, nullptr, this);
     }
@@ -3060,6 +3071,9 @@ void MediaPlayerPrivateGStreamer::createGSTPlayBin(const URL& url)
     if (m_videoSink)
         configureElementPlatformQuirks(m_videoSink.get());
 #endif
+
+    printf("### %s: Installing dumpAfterSomeTime timer\n", __PRETTY_FUNCTION__); fflush(stdout);
+    g_timeout_add_seconds(10, dumpAfterSomeTime, m_pipeline.get());
 }
 
 void MediaPlayerPrivateGStreamer::configureVideoDecoder(GstElement* decoder)

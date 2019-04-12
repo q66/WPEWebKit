@@ -183,7 +183,10 @@ AudioSourceProviderGStreamer::~AudioSourceProviderGStreamer()
 #endif
     m_notifier->invalidate();
 
-    auto deinterleave = adoptGRef(gst_bin_get_by_name(GST_BIN_CAST(m_audioSinkBin.get()), "deinterleave"));
+    GRefPtr<GstElement> deinterleave = nullptr;
+    if (m_audioSinkBin && GST_IS_BIN(m_audioSinkBin.get()))
+        deinterleave = adoptGRef(gst_bin_get_by_name(GST_BIN_CAST(m_audioSinkBin.get()), "deinterleave"));
+
     if (deinterleave && m_client) {
         g_signal_handler_disconnect(deinterleave.get(), m_deinterleavePadAddedHandlerId);
         g_signal_handler_disconnect(deinterleave.get(), m_deinterleaveNoMorePadsHandlerId);
@@ -280,6 +283,12 @@ void AudioSourceProviderGStreamer::setClient(WeakPtr<AudioSourceProviderClient>&
 #if ENABLE(MEDIA_STREAM)
     GST_DEBUG_OBJECT(m_pipeline.get(), "[%p] Setting up client %p (previous: %p)", this, newClient.get(), client());
 #endif
+
+    if (!(m_audioSinkBin && GST_IS_BIN(m_audioSinkBin.get()))) {
+        g_info("The native audio sink used in this hardware platform is incompatible with AudioSourceProvider");
+        return;
+    }
+
     bool previousClientWasValid = !!m_client;
     m_client = WTFMove(newClient);
 

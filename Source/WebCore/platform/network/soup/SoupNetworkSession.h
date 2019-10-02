@@ -80,8 +80,6 @@ public:
     static std::optional<ResourceError> checkTLSErrors(const URL&, GTlsCertificate*, GTlsCertificateFlags);
     static void allowSpecificHTTPSCertificateForHost(const CertificateInfo&, const String& host);
 
-    static void setCustomProtocolRequestType(GType);
-    void setupCustomProtocols();
 
 #if ENABLE(NETWORK_CHANGE_DETECTION)
     void scheduleNetworkChangeCheck();

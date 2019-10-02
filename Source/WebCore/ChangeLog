@@ -1,3 +1,16 @@
+2019-10-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][WPE] Stop using legacy custom protocol implementation
+        https://bugs.webkit.org/show_bug.cgi?id=202407
+
+        Reviewed by Žan Doberšek.
+
+        Remove the code to setup custom protocols in soup session.
+
+        * platform/network/soup/SoupNetworkSession.cpp:
+        (WebCore::SoupNetworkSession::SoupNetworkSession):
+        * platform/network/soup/SoupNetworkSession.h:
+
 2021-06-16  Chris Dumez  <cdumez@apple.com>
 
         Protect Element before calling dispatchMouseEvent() on it

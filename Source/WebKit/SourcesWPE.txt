@@ -23,10 +23,6 @@
 
 NetworkProcess/Cookies/soup/WebCookieManagerSoup.cpp
 
-NetworkProcess/CustomProtocols/LegacyCustomProtocolManager.cpp
-
-NetworkProcess/CustomProtocols/soup/LegacyCustomProtocolManagerSoup.cpp
-
 NetworkProcess/cache/NetworkCacheCodersSoup.cpp
 NetworkProcess/cache/NetworkCacheDataSoup.cpp
 NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp
@@ -125,7 +121,6 @@ UIProcess/API/glib/WebKitBackForwardListItem.cpp @no-unify
 UIProcess/API/glib/WebKitContextMenuClient.cpp @no-unify
 UIProcess/API/glib/WebKitCookieManager.cpp @no-unify
 UIProcess/API/glib/WebKitCredential.cpp @no-unify
-UIProcess/API/glib/WebKitCustomProtocolManagerClient.cpp @no-unify
 UIProcess/API/glib/WebKitDeviceInfoPermissionRequest.cpp @no-unify
 UIProcess/API/glib/WebKitDownload.cpp @no-unify
 UIProcess/API/glib/WebKitDownloadClient.cpp @no-unify
@@ -191,8 +186,6 @@ UIProcess/Automation/cairo/WebAutomationSessionCairo.cpp
 UIProcess/Automation/wpe/WebAutomationSessionWPE.cpp
 
 UIProcess/Launcher/glib/ProcessLauncherGLib.cpp
-
-UIProcess/Network/CustomProtocols/LegacyCustomProtocolManagerProxy.cpp
 
 UIProcess/Plugins/unix/PluginInfoStoreUnix.cpp
 UIProcess/Plugins/unix/PluginProcessProxyUnix.cpp

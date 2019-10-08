@@ -28,7 +28,6 @@
 #include "HTTPParsers.h"
 #include "MIMETypeRegistry.h"
 #include "SharedBuffer.h"
-#include "WebKitSoupRequestGeneric.h"
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
 
@@ -185,9 +184,6 @@ void ResourceRequest::updateSoupRequest(SoupRequest* soupRequest) const
         *initiatingPageIDPtr = m_initiatingPageID;
         g_object_set_data_full(G_OBJECT(soupRequest), g_intern_static_string(gSoupRequestInitiatingPageIDKey), initiatingPageIDPtr, fastFree);
     }
-
-    if (WEBKIT_IS_SOUP_REQUEST_GENERIC(soupRequest))
-        webkitSoupRequestGenericSetRequest(WEBKIT_SOUP_REQUEST_GENERIC(soupRequest), *this);
 }
 
 void ResourceRequest::updateFromSoupRequest(SoupRequest* soupRequest)

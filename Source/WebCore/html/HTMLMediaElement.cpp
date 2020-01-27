@@ -1662,9 +1662,15 @@ void HTMLMediaElement::loadResource(const URL& initialURL, ContentType& contentT
 
     if (m_mediaSource) {
         loadAttempted = true;
-        if (!m_mediaSource->attachToElement(*this) || !m_player->load(url, contentType, m_mediaSource.get())) {
+        ALWAYS_LOG(LOGIDENTIFIER, "loading MSE blob");
+        if (!m_mediaSource->attachToElement(*this)) {
             // Forget our reference to the MediaSource, so we leave it alone
             // while processing remainder of load failure.
+            m_mediaSource = nullptr;
+            mediaLoadingFailed(MediaPlayer::FormatError);
+        } else if (!m_player->load(url, contentType, m_mediaSource.get())) {
+            // We have to detach the MediaSource before we forget the reference to it.
+            m_mediaSource->detachFromElement(*this);
             m_mediaSource = nullptr;
             mediaLoadingFailed(MediaPlayer::FormatError);
         }

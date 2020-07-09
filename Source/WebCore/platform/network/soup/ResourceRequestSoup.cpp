@@ -143,8 +143,10 @@ void ResourceRequest::updateFromSoupMessage(SoupMessage* soupMessage)
 
     m_soupFlags = soup_message_get_flags(soupMessage);
 
-    // FIXME: m_allowCookies should probably be handled here and on
-    // doUpdatePlatformRequest somehow.
+#if SOUP_CHECK_VERSION(2, 71, 0)
+    m_acceptEncoding = !soup_message_is_feature_disabled(soupMessage, SOUP_TYPE_CONTENT_DECODER);
+    m_allowCookies = !soup_message_is_feature_disabled(soupMessage, SOUP_TYPE_COOKIE_JAR);
+#endif
 }
 
 unsigned initializeMaximumHTTPConnectionCountPerHost()

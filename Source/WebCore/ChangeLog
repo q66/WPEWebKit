@@ -1,3 +1,15 @@
+2020-07-09  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Initialize m_allowCookies and m_acceptEncoding in ResourceRequest::updateFromSoupMessage
+        https://bugs.webkit.org/show_bug.cgi?id=214077
+
+        Reviewed by Michael Catanzaro.
+
+        Check if SOUP_TYPE_CONTENT_DECODER and SOUP_TYPE_COOKIE_JAR are disabled in the given message.
+
+        * platform/network/soup/ResourceRequestSoup.cpp:
+        (WebCore::ResourceRequest::updateFromSoupMessage):
+
 2021-02-03  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK][WPE] Reduce the use of SoupURI in preparation for libsoup3

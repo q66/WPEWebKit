@@ -1,3 +1,14 @@
+2020-10-05  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r267763) [SOUP] Some tests flaky crashing in NetworkSessionSoup::soupSession()
+        https://bugs.webkit.org/show_bug.cgi?id=217163
+
+        Reviewed by Alex Christensen.
+
+        Remove expectations for tests that should pass now.
+
+        * platform/glib/TestExpectations:
+
 2021-01-29  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [SOUP] Use a GInputStream to set the request body in preparation for libsoup3

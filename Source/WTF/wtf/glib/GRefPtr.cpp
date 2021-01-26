@@ -169,6 +169,19 @@ template <> void derefGPtr(GRegex* ptr)
         g_regex_unref(ptr);
 }
 
+template <> GDateTime* refGPtr(GDateTime* ptr)
+{
+    if (ptr)
+	g_date_time_ref(ptr);
+    return ptr;
+}
+
+template <> void derefGPtr(GDateTime* ptr)
+{
+    if (ptr)
+        g_date_time_unref(ptr);
+}
+
 } // namespace WTF
 
 #endif // USE(GLIB)

@@ -1,3 +1,12 @@
+2021-01-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Stop using SoupRequest API to load files in preparation for libsoup3
+        https://bugs.webkit.org/show_bug.cgi?id=220509
+
+        Reviewed by Adrian Perez de Castro.
+
+        * POTFILES.in: Add WebKitDirectoryInputStream.cpp
+
 2018-08-16  Piotr Drąg  <piotrdrag@gmail.com>
 
         [l10n] Updated Polish translation of WebKitGTK+ for 2.22

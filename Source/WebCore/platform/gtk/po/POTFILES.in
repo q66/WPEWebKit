@@ -2,6 +2,7 @@
 LocalizedStringsGtk.cpp
 ../LocalizedStrings.cpp
 ../network/soup/NetworkStorageSessionSoup.cpp
+../../../WebKit/NetworkProcess/soup/WebKitDirectoryInputStream.cpp
 ../../../WebKit/Shared/API/glib/WebKitHitTestResult.cpp
 ../../../WebKit/Shared/API/glib/WebKitURIRequest.cpp
 ../../../WebKit/Shared/API/glib/WebKitURIResponse.cpp

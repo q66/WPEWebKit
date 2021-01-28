@@ -247,7 +247,6 @@ private:
         }
 
         webkitURIRequestGetResourceRequest(request.get(), resourceRequest);
-        resourceRequest.setInitiatingPageID(page.pageID());
 
         API::Dictionary::MapType message;
         message.set(String::fromUTF8("Page"), &page);

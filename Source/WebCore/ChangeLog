@@ -1,3 +1,20 @@
+2021-01-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Stop using SoupRequest API in preparation for libsoup3
+        https://bugs.webkit.org/show_bug.cgi?id=220764
+
+        Reviewed by Adrian Perez de Castro.
+
+        * platform/network/soup/ResourceError.h: Error constructors now receive the failing URL instead of a SoupRequest
+        that is only used to get its URL.
+        * platform/network/soup/ResourceErrorSoup.cpp:
+        (WebCore::ResourceError::transportError):
+        (WebCore::ResourceError::httpError):
+        (WebCore::ResourceError::genericGError):
+        * platform/network/soup/ResourceRequest.h: Remmove the constructor that receives a SoupRequest and the
+        initiating page ID since it's currently unsused.
+        * platform/network/soup/ResourceRequestSoup.cpp:
+
 2019-10-08  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Unreviewed. Remove unused WebKitSoupRequestGeneric after r250597

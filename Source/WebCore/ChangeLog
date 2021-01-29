@@ -1,3 +1,26 @@
+2021-01-29  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Use a GInputStream to set the request body in preparation for libsoup3
+        https://bugs.webkit.org/show_bug.cgi?id=221034
+
+        Reviewed by Adrian Perez de Castro.
+
+        In libsoup3, the request body can be set using a stream. Add the stream now, that can still be used in libsoup2
+        to set the body data. This moves the FormData processing code to WebKitFormDataInputStream and also implements
+        the file seek and range length, which makes test http/tests/local/blob/send-hybrid-blob-using-open-panel.html pass.
+
+        * platform/SourcesSoup.txt:
+        * platform/network/soup/ResourceRequestSoup.cpp:
+        (WebCore::ResourceRequest::updateSoupMessageBody const):
+        * platform/network/soup/WebKitFormDataInputStream.cpp: Added.
+        (webkitFormDataInputStreamCreateNextStream):
+        (webkitFormDataInputStreamRead):
+        (webkitFormDataInputStreamClose):
+        (webkit_form_data_input_stream_class_init):
+        (webkitFormDataInputStreamNew):
+        (webkitFormDataInputStreamReadAll):
+        * platform/network/soup/WebKitFormDataInputStream.h: Added.
+
 2021-01-28  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [SOUP] Stop using SoupRequest API in preparation for libsoup3

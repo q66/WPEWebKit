@@ -28,77 +28,48 @@
 #include "HTTPParsers.h"
 #include "MIMETypeRegistry.h"
 #include "SharedBuffer.h"
+#include "WebKitFormDataInputStream.h"
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-static uint64_t appendEncodedBlobItemToSoupMessageBody(SoupMessage* soupMessage, const BlobDataItem& blobItem)
-{
-    switch (blobItem.type()) {
-    case BlobDataItem::Type::Data:
-        soup_message_body_append(soupMessage->request_body, SOUP_MEMORY_TEMPORARY, blobItem.data().data()->data() + blobItem.offset(), blobItem.length());
-        return blobItem.length();
-    case BlobDataItem::Type::File: {
-        if (!FileSystem::isValidFileTime(blobItem.file()->expectedModificationTime()))
-            return 0;
-
-        time_t fileModificationTime;
-        if (!FileSystem::getFileModificationTime(blobItem.file()->path(), fileModificationTime)
-            || fileModificationTime != static_cast<time_t>(blobItem.file()->expectedModificationTime()))
-            return 0;
-
-        if (RefPtr<SharedBuffer> buffer = SharedBuffer::createWithContentsOfFile(blobItem.file()->path())) {
-            if (buffer->isEmpty())
-                return 0;
-
-            GUniquePtr<SoupBuffer> soupBuffer(buffer->createSoupBuffer(blobItem.offset(), blobItem.length() == BlobDataItem::toEndOfFile ? 0 : blobItem.length()));
-            if (soupBuffer->length)
-                soup_message_body_append_buffer(soupMessage->request_body, soupBuffer.get());
-            return soupBuffer->length;
-        }
-        break;
-    }
-    }
-
-    return 0;
-}
-
-void ResourceRequest::updateSoupMessageBody(SoupMessage* soupMessage) const
+void ResourceRequest::updateSoupMessageBody(SoupMessage* soupMessage, BlobRegistryImpl& blobRegistry) const
 {
     auto* formData = httpBody();
     if (!formData || formData->isEmpty())
         return;
 
-    soup_message_body_set_accumulate(soupMessage->request_body, FALSE);
-    uint64_t bodySize = 0;
-    for (const auto& element : formData->elements()) {
-        switch (element.m_type) {
-        case FormDataElement::Type::Data:
-            bodySize += element.m_data.size();
-            soup_message_body_append(soupMessage->request_body, SOUP_MEMORY_TEMPORARY, element.m_data.data(), element.m_data.size());
-            break;
-        case FormDataElement::Type::EncodedFile:
-            if (RefPtr<SharedBuffer> buffer = SharedBuffer::createWithContentsOfFile(element.m_filename)) {
-                if (buffer->isEmpty())
-                    break;
-
-                GUniquePtr<SoupBuffer> soupBuffer(buffer->createSoupBuffer());
-                bodySize += buffer->size();
-                if (soupBuffer->length)
-                    soup_message_body_append_buffer(soupMessage->request_body, soupBuffer.get());
-            }
-            break;
-        case FormDataElement::Type::EncodedBlob:
-            if (auto* blobData = static_cast<BlobRegistryImpl&>(blobRegistry()).getBlobDataFromURL(element.m_url)) {
-                for (const auto& item : blobData->items())
-                    bodySize += appendEncodedBlobItemToSoupMessageBody(soupMessage, item);
-            }
-            break;
+    // Handle the common special case of one piece of form data, with no files.
+    auto& elements = formData->elements();
+    if (elements.size() == 1 && !formData->alwaysStream()) {
+        if (auto* vector = WTF::get_if<Vector<char>>(elements[0].data)) {
+            soup_message_body_append(soupMessage->request_body, SOUP_MEMORY_TEMPORARY, vector->data(), vector->size());
+            return;
         }
     }
 
-    ASSERT(bodySize == static_cast<uint64_t>(soupMessage->request_body->length));
+    // Precompute the content length.
+    auto resolvedFormData = formData->resolveBlobReferences();
+    uint64_t length = 0;
+    for (auto& element : resolvedFormData->elements()) {
+        length += element.lengthInBytes([&](auto& url) {
+            return blobRegistry.blobSize(url);
+        });
+    }
+
+    if (!length)
+        return;
+
+    GRefPtr<GInputStream> stream = webkitFormDataInputStreamNew(WTFMove(resolvedFormData));
+    if (GBytes* data = webkitFormDataInputStreamReadAll(WEBKIT_FORM_DATA_INPUT_STREAM(stream.get()))) {
+        soup_message_body_set_accumulate(soupMessage->request_body, FALSE);
+        GUniquePtr<SoupBuffer> soupBuffer(soup_buffer_new_with_owner(g_bytes_get_data(data, nullptr),
+            g_bytes_get_size(data), data, reinterpret_cast<GDestroyNotify>(g_bytes_unref)));
+        soup_message_body_append_buffer(soupMessage->request_body, soupBuffer.get());
+    }
+
+    ASSERT(length == static_cast<uint64_t>(soupMessage->request_body->length));
 }
 
 void ResourceRequest::updateSoupMessageMembers(SoupMessage* soupMessage) const

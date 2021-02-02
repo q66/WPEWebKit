@@ -32,8 +32,12 @@
 #include <wtf/WorkQueue.h>
 #include <wtf/text/WTFString.h>
 
-#if USE(SOUP)
+#if USE(GLIB)
 #include <wtf/glib/GRefPtr.h>
+
+typedef struct _GFileIOStream GFileIOStream;
+typedef struct _GInputStream GInputStream;
+typedef struct _GOutputStream GOutputStream;
 #endif
 
 namespace WebKit {
@@ -53,13 +57,16 @@ public:
     Type type() const { return m_type; }
 
     int fileDescriptor() const { return m_fileDescriptor; }
+#if USE(GLIB)
+    bool isOpened() const { return true; }
+#endif
 
     ~IOChannel();
 
 private:
     IOChannel(const String& filePath, IOChannel::Type);
 
-#if USE(SOUP)
+#if USE(GLIB)
     void readSyncInThread(size_t offset, size_t, WorkQueue*, Function<void (Data&, int error)>&&);
 #endif
 
@@ -71,7 +78,7 @@ private:
 #if PLATFORM(COCOA)
     OSObjectPtr<dispatch_io_t> m_dispatchIO;
 #endif
-#if USE(SOUP)
+#if USE(GLIB)
     GRefPtr<GInputStream> m_inputStream;
     GRefPtr<GOutputStream> m_outputStream;
     GRefPtr<GFileIOStream> m_ioStream;

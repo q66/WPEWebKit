@@ -1,3 +1,25 @@
+2021-02-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Stop using SoupBuffer in preparation for libsoup3
+        https://bugs.webkit.org/show_bug.cgi?id=221206
+
+        Reviewed by Sergio Villar Senin.
+
+        Remove use of SoupBuffer from platform since it's now unused.
+
+        * platform/SharedBuffer.cpp:
+        (WebCore::SharedBuffer::DataSegment::data const):
+        (WebCore::SharedBuffer::DataSegment::size const):
+        * platform/SharedBuffer.h:
+        * platform/Soup.cmake:
+        * platform/SourcesSoup.txt:
+        * platform/network/soup/GRefPtrSoup.cpp: Removed.
+        * platform/network/soup/GRefPtrSoup.h: Removed.
+        * platform/network/soup/GUniquePtrSoup.h:
+        * platform/network/soup/ResourceRequestSoup.cpp:
+        (WebCore::ResourceRequest::updateSoupMessageBody const):
+        * platform/soup/SharedBufferSoup.cpp: Removed.
+
 2021-01-29  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [SOUP] Use a GInputStream to set the request body in preparation for libsoup3

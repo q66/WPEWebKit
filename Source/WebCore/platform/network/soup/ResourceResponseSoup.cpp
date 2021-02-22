@@ -24,9 +24,11 @@
 
 #include "ResourceResponse.h"
 
+#include "GUniquePtrSoup.h"
 #include "HTTPHeaderNames.h"
 #include "HTTPParsers.h"
 #include "MIMETypeRegistry.h"
+#include "SoupVersioning.h"
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
 
@@ -44,17 +46,18 @@ ResourceResponse::ResourceResponse(SoupMessage* soupMessage, const CString& snif
         m_httpVersion = AtomicString("HTTP/1.1", AtomicString::ConstructFromLiteral);
         break;
     }
-    m_httpStatusCode = soupMessage->status_code;
-    setHTTPStatusText(soupMessage->reason_phrase);
 
-    GTlsCertificate* certificate = 0;
-    soup_message_get_https_status(soupMessage, &certificate, &m_tlsErrors);
-    m_certificate = certificate;
+    m_httpStatusCode = soup_message_get_status(soupMessage);
+    setHTTPStatusText(soup_message_get_reason_phrase(soupMessage));
 
-    updateFromSoupMessageHeaders(soupMessage->response_headers);
+    m_certificate = soup_message_get_tls_peer_certificate(soupMessage);
+    m_tlsErrors = soup_message_get_tls_peer_certificate_errors(soupMessage);
+
+    auto* responseHeaders = soup_message_get_response_headers(soupMessage);
+    updateFromSoupMessageHeaders(responseHeaders);
 
     String contentType;
-    const char* officialType = soup_message_headers_get_one(soupMessage->response_headers, "Content-Type");
+    const char* officialType = soup_message_headers_get_one(responseHeaders, "Content-Type");
     if (!sniffedContentType.isNull() && m_httpStatusCode != SOUP_STATUS_NOT_MODIFIED && sniffedContentType != officialType)
         contentType = sniffedContentType.data();
     else
@@ -64,7 +67,7 @@ ResourceResponse::ResourceResponse(SoupMessage* soupMessage, const CString& snif
         setMimeType(MIMETypeRegistry::getMIMETypeForPath(m_url.path()));
     setTextEncodingName(extractCharsetFromMediaType(contentType));
 
-    setExpectedContentLength(soup_message_headers_get_content_length(soupMessage->response_headers));
+    setExpectedContentLength(soup_message_headers_get_content_length(responseHeaders));
 }
 
 void ResourceResponse::updateSoupMessageHeaders(SoupMessageHeaders* soupHeaders) const
@@ -96,11 +99,10 @@ String ResourceResponse::platformSuggestedFilename() const
 
     if (contentDisposition.is8Bit())
         contentDisposition = String::fromUTF8WithLatin1Fallback(contentDisposition.characters8(), contentDisposition.length());
-    SoupMessageHeaders* soupHeaders = soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE);
-    soup_message_headers_append(soupHeaders, "Content-Disposition", contentDisposition.utf8().data());
+    GUniquePtr<SoupMessageHeaders> soupHeaders(soup_message_headers_new(SOUP_MESSAGE_HEADERS_RESPONSE));
+    soup_message_headers_append(soupHeaders.get(), "Content-Disposition", contentDisposition.utf8().data());
     GRefPtr<GHashTable> params;
-    soup_message_headers_get_content_disposition(soupHeaders, nullptr, &params.outPtr());
-    soup_message_headers_free(soupHeaders);
+    soup_message_headers_get_content_disposition(soupHeaders.get(), nullptr, &params.outPtr());
     char* filename = params ? static_cast<char*>(g_hash_table_lookup(params.get(), "filename")) : nullptr;
     return filename ? String::fromUTF8(filename) : String();
 }

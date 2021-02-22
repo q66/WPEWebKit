@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 Apple Inc.  All rights reserved.
+ * Copyright (C) 2018 Igalia S.L.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,42 +25,19 @@
 
 #pragma once
 
-#include "AuthenticationChallengeBase.h"
-#include "AuthenticationClient.h"
+#include "GUniquePtrSoup.h"
+#include <wtf/glib/GRefPtr.h>
 
-typedef struct _SoupAuth SoupAuth;
-typedef struct _SoupMessage SoupMessage;
+namespace WTF {
+class URL;
+}
 
 namespace WebCore {
-
-class AuthenticationChallenge final : public AuthenticationChallengeBase {
-public:
-    AuthenticationChallenge()
-    {
-    }
-
-    AuthenticationChallenge(const ProtectionSpace& protectionSpace, const Credential& proposedCredential, unsigned previousFailureCount, const ResourceResponse& response, const ResourceError& error)
-        : AuthenticationChallengeBase(protectionSpace, proposedCredential, previousFailureCount, response, error)
-    {
-    }
-
-    AuthenticationChallenge(SoupMessage*, SoupAuth*, bool retrying);
-    AuthenticationClient* authenticationClient() const { RELEASE_ASSERT_NOT_REACHED(); }
 #if USE(SOUP2)
-    SoupMessage* soupMessage() const { return m_soupMessage.get(); }
+WTF::URL soupURIToURL(SoupURI*);
+GUniquePtr<SoupURI> urlToSoupURI(const WTF::URL&);
+#else
+WTF::URL soupURIToURL(GUri*);
+GRefPtr<GUri> urlToSoupURI(const WTF::URL&);
 #endif
-    SoupAuth* soupAuth() const { return m_soupAuth.get(); }
-    void setProposedCredential(const Credential& credential) { m_proposedCredential = credential; }
-
-private:
-    friend class AuthenticationChallengeBase;
-    static bool platformCompare(const AuthenticationChallenge&, const AuthenticationChallenge&);
-
-#if USE(SOUP2)
-    GRefPtr<SoupMessage> m_soupMessage;
-#endif
-    GRefPtr<SoupAuth> m_soupAuth;
-};
-
 } // namespace WebCore
-

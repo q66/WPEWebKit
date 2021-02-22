@@ -1,3 +1,70 @@
+2021-02-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Add support for libsoup3
+        https://bugs.webkit.org/show_bug.cgi?id=222093
+
+        Reviewed by Adrian Perez de Castro.
+
+        * platform/Soup.cmake:
+        * platform/network/soup/AuthenticationChallenge.h:
+        * platform/network/soup/AuthenticationChallengeSoup.cpp:
+        (WebCore::AuthenticationChallenge::AuthenticationChallenge):
+        (WebCore::AuthenticationChallenge::platformCompare):
+        * platform/network/soup/CookieSoup.cpp:
+        (WebCore::Cookie::Cookie):
+        (WebCore::Cookie::toSoupCookie const):
+        * platform/network/soup/GUniquePtrSoup.h:
+        * platform/network/soup/NetworkStorageSessionSoup.cpp:
+        (WebCore::schemeFromProtectionSpaceServerType):
+        (WebCore::authTypeFromProtectionSpaceAuthenticationScheme):
+        (WebCore::NetworkStorageSession::setCookiesFromDOM const):
+        (WebCore::NetworkStorageSession::setCookies):
+        (WebCore::NetworkStorageSession::deleteCookie const):
+        (WebCore::NetworkStorageSession::getHostnamesWithCookies):
+        (WebCore::NetworkStorageSession::getCookies):
+        (WebCore::NetworkStorageSession::hasCookies const):
+        (WebCore::NetworkStorageSession::getRawCookies const):
+        (WebCore::cookiesForSession):
+        * platform/network/soup/ResourceErrorSoup.cpp:
+        (WebCore::ResourceError::transportError):
+        (WebCore::ResourceError::httpError):
+        (WebCore::ResourceError::authenticationError):
+        (WebCore::ResourceError::tlsError):
+        * platform/network/soup/ResourceRequest.h:
+        * platform/network/soup/ResourceRequestSoup.cpp:
+        (WebCore::ResourceRequest::createSoupMessage const):
+        (WebCore::ResourceRequest::updateSoupMessageBody const):
+        (WebCore::ResourceRequest::createSoupURI const):
+        * platform/network/soup/ResourceResponseSoup.cpp:
+        (WebCore::ResourceResponse::ResourceResponse):
+        * platform/network/soup/SoupNetworkSession.cpp:
+        (WebCore::SoupNetworkSession::SoupNetworkSession):
+        (WebCore::SoupNetworkSession::setupLogger):
+        (WebCore::SoupNetworkSession::clearHSTSCache):
+        (WebCore::SoupNetworkSession::setProxySettings):
+        * platform/network/soup/SoupVersioning.h: Added.
+        (soup_message_get_method):
+        (soup_server_message_get_method):
+        (soup_message_get_status):
+        (soup_server_message_set_status):
+        (soup_message_get_reason_phrase):
+        (soup_message_get_request_headers):
+        (soup_server_message_get_request_headers):
+        (soup_message_get_response_headers):
+        (soup_server_message_get_response_headers):
+        (soup_server_message_get_response_body):
+        (soup_server_message_set_response):
+        (soup_server_message_get_uri):
+        (soup_message_get_tls_certificate):
+        (soup_message_get_tls_certificate_errors):
+        (soup_session_send_async):
+        (soup_session_websocket_connect_async):
+        (soup_auth_cancel):
+        * platform/network/soup/URLSoup.cpp:
+        (WebCore::soupURIToURL):
+        (WebCore::urlToSoupURI):
+        * platform/network/soup/URLSoup.h:
+
 2021-02-10  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [SOUP] Simplify ResourceRequest and ResourceResponse

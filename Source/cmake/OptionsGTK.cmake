@@ -26,7 +26,6 @@ find_package(GDK3 3.6.0 REQUIRED)
 find_package(HarfBuzz 0.9.2 REQUIRED)
 find_package(ICU REQUIRED)
 find_package(JPEG REQUIRED)
-find_package(LibSoup 2.42.0 REQUIRED)
 find_package(LibXml2 2.8.0 REQUIRED)
 find_package(PNG REQUIRED)
 find_package(Sqlite REQUIRED)
@@ -84,6 +83,7 @@ WEBKIT_OPTION_DEFINE(USE_LIBNOTIFY "Whether to enable the default web notificati
 WEBKIT_OPTION_DEFINE(USE_LIBHYPHEN "Whether to enable the default automatic hyphenation implementation." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(USE_LIBSECRET "Whether to enable the persistent credential storage using libsecret." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(USE_OPENJPEG "Whether to enable support for JPEG2000 images." PUBLIC ON)
+WEBKIT_OPTION_DEFINE(USE_SOUP2 "Whether to enable usage of Soup 2 instead of Soup 3." PUBLIC ON)
 WEBKIT_OPTION_DEFINE(USE_WOFF2 "Whether to enable support for WOFF2 Web Fonts." PUBLIC ON)
 
 # Private options specific to the GTK+ port. Changing these options is
@@ -153,6 +153,13 @@ include(GStreamerDefinitions)
 # this point, and do not attempt to change any option after this point.
 WEBKIT_OPTION_END()
 
+if (USE_SOUP2)
+    set(SOUP_MINIMUM_VERSION 2.54.0)
+else ()
+    set(SOUP_MINIMUM_VERSION 2.91.0)
+endif ()
+find_package(LibSoup ${SOUP_MINIMUM_VERSION} REQUIRED)
+
 SET_AND_EXPOSE_TO_BUILD(WTF_PLATFORM_QUARTZ ${ENABLE_QUARTZ_TARGET})
 SET_AND_EXPOSE_TO_BUILD(WTF_PLATFORM_X11 ${ENABLE_X11_TARGET})
 SET_AND_EXPOSE_TO_BUILD(WTF_PLATFORM_WAYLAND ${ENABLE_WAYLAND_TARGET})
@@ -181,8 +188,10 @@ set(GDK_INCLUDE_DIRS ${GDK3_INCLUDE_DIRS})
 SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_GESTURES ${GTK3_SUPPORTS_GESTURES})
 SET_AND_EXPOSE_TO_BUILD(HAVE_GTK_UNIX_PRINTING ${GTKUnixPrint_FOUND})
 
-set(glib_components gio gio-unix gobject gthread gmodule)
-find_package(GLIB 2.36 REQUIRED COMPONENTS ${glib_components})
+# GUri is available in GLib since version 2.66, but we only want to use it if version is >= 2.67.1.
+if (PC_GLIB_VERSION VERSION_GREATER "2.67.1" OR PC_GLIB_VERSION STREQUAL "2.67.1")
+    SET_AND_EXPOSE_TO_BUILD(HAVE_GURI 1)
+endif ()
 
 if (ENABLE_XSLT)
     find_package(LibXslt 1.1.7 REQUIRED)

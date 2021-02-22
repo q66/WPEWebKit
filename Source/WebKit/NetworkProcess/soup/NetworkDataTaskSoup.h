@@ -73,14 +73,22 @@ private:
     void dispatchDidReceiveResponse();
     void dispatchDidCompleteWithError(const WebCore::ResourceError&);
 
+#if USE(SOUP2)
     static gboolean tlsConnectionAcceptCertificateCallback(GTlsConnection*, GTlsCertificate*, GTlsCertificateFlags, NetworkDataTaskSoup*);
-    bool tlsConnectionAcceptCertificate(GTlsCertificate*, GTlsCertificateFlags);
+#else
+    static gboolean acceptCertificateCallback(SoupMessage*, GTlsCertificate*, GTlsCertificateFlags, NetworkDataTaskSoup*);
+#endif
+    bool acceptCertificate(GTlsCertificate*, GTlsCertificateFlags);
 
     static void didSniffContentCallback(SoupMessage*, const char* contentType, GHashTable* parameters, NetworkDataTaskSoup*);
     void didSniffContent(CString&&);
 
     void applyAuthenticationToRequest(WebCore::ResourceRequest&);
+#if USE(SOUP2)
     static void authenticateCallback(SoupSession*, SoupMessage*, SoupAuth*, gboolean retrying, NetworkDataTaskSoup*);
+#else
+    static gboolean authenticateCallback(SoupMessage*, SoupAuth*, gboolean retrying, NetworkDataTaskSoup*);
+#endif
     void authenticate(WebCore::AuthenticationChallenge&&);
     void continueAuthenticate(WebCore::AuthenticationChallenge&&);
 
@@ -103,7 +111,11 @@ private:
     static void gotHeadersCallback(SoupMessage*, NetworkDataTaskSoup*);
     void didGetHeaders();
 
+#if USE(SOUP2)
     static void wroteBodyDataCallback(SoupMessage*, SoupBuffer*, NetworkDataTaskSoup*);
+#else
+    static void wroteBodyDataCallback(SoupMessage*, unsigned, NetworkDataTaskSoup*);
+#endif
     void didWriteBodyData(uint64_t bytesSent);
 
     void download();

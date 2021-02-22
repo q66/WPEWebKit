@@ -20,8 +20,7 @@
  *
  */
 
-#ifndef WTF_GRefPtr_h
-#define WTF_GRefPtr_h
+#pragma once
 
 #if USE(GLIB)
 
@@ -242,6 +241,11 @@ template <> WTF_EXPORT_PRIVATE void derefGPtr(GRegex*);
 template <> WTF_EXPORT_PRIVATE GDateTime* refGPtr(GDateTime* ptr);
 template <> WTF_EXPORT_PRIVATE void derefGPtr(GDateTime* ptr);
 
+#if HAVE(GURI)
+template <> WTF_EXPORT_PRIVATE GUri* refGPtr(GUri*);
+template <> WTF_EXPORT_PRIVATE void derefGPtr(GUri*);
+#endif
+
 template <typename T> inline T* refGPtr(T* ptr)
 {
     if (ptr)
@@ -279,5 +283,3 @@ using WTF::GRefPtr;
 using WTF::adoptGRef;
 
 #endif // USE(GLIB)
-
-#endif // WTF_GRefPtr_h

@@ -31,8 +31,10 @@
 #include <WebCore/HTTPParsers.h>
 #include <WebCore/ResourceRequest.h>
 #include <WebCore/ResourceResponse.h>
+#include <WebCore/SoupVersioning.h>
 #include <WebCore/WebSocketChannel.h>
 #include <wtf/glib/GUniquePtr.h>
+#include <wtf/glib/RunLoopSourcePriority.h>
 #include <wtf/text/StringBuilder.h>
 
 namespace WebKit {
@@ -52,12 +54,14 @@ WebSocketTask::WebSocketTask(NetworkSocketChannel& channel, const WebCore::Resou
             protocols.get()[i++] = g_strdup(WebCore::stripLeadingAndTrailingHTTPSpaces(subprotocol).utf8().data());
     }
 
+#if USE(SOUP2)
     // Ensure a new connection is used for WebSockets.
     // FIXME: this is done by libsoup since 2.69.1 and 2.68.4, so it can be removed when bumping the libsoup requirement.
     // See https://bugs.webkit.org/show_bug.cgi?id=203404
     soup_message_set_flags(msg, static_cast<SoupMessageFlags>(soup_message_get_flags(msg) | SOUP_MESSAGE_NEW_CONNECTION));
+#endif
 
-    soup_session_websocket_connect_async(session, msg, nullptr, protocols.get(), m_cancellable.get(),
+    soup_session_websocket_connect_async(session, msg, nullptr, protocols.get(), RunLoopSourcePriority::AsyncIONetwork, m_cancellable.get(),
         [] (GObject* session, GAsyncResult* result, gpointer userData) {
             GUniqueOutPtr<GError> error;
             GRefPtr<SoupWebsocketConnection> connection = adoptGRef(soup_session_websocket_connect_finish(SOUP_SESSION(session), result, &error.outPtr()));
@@ -71,7 +75,7 @@ WebSocketTask::WebSocketTask(NetworkSocketChannel& channel, const WebCore::Resou
         }, this);
 
     g_signal_connect(msg, "starting", G_CALLBACK(+[](SoupMessage* msg, WebSocketTask* task) {
-        task->m_request.updateFromSoupMessageHeaders(msg->request_headers);
+        task->m_request.updateFromSoupMessageHeaders(soup_message_get_request_headers(msg));
         task->m_channel.didSendHandshakeRequest(WTFMove(task->m_request));
     }), this);
 }

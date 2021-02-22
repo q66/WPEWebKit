@@ -584,7 +584,11 @@
 #endif
 
 #if USE(SOUP)
-#define SOUP_VERSION_MIN_REQUIRED SOUP_VERSION_2_42
+#if USE(SOUP2)
+#define SOUP_VERSION_MIN_REQUIRED SOUP_VERSION_2_54
+#else
+#define SOUP_VERSION_MIN_REQUIRED SOUP_VERSION_3_0
+#endif
 #endif
 
 /* On Windows, use QueryPerformanceCounter by default */

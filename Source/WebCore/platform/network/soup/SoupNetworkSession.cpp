@@ -34,6 +34,7 @@
 #include "GUniquePtrSoup.h"
 #include "Logging.h"
 #include "SoupNetworkProxySettings.h"
+#include "SoupVersioning.h"
 #include <glib/gstdio.h>
 #include <libsoup/soup.h>
 #include <pal/crypto/CryptoDigest.h>
@@ -168,9 +169,8 @@ static HashMap<String, HostTLSCertificateSet, ASCIICaseInsensitiveHash>& clientC
 }
 
 SoupNetworkSession::SoupNetworkSession(PAL::SessionID sessionID, SoupCookieJar* cookieJar)
-    : m_soupSession(adoptGRef(soup_session_async_new()))
 #if ENABLE(NETWORK_CHANGE_DETECTION)
-    , m_networkChangeCheckTimer(RunLoop::main(), this, &SoupNetworkSession::networkChangeCheckTimerFired)
+    : m_networkChangeCheckTimer(RunLoop::main(), this, &SoupNetworkSession::networkChangeCheckTimerFired)
 #endif
 {
     // Values taken from http://www.browserscope.org/ following
@@ -186,30 +186,22 @@ SoupNetworkSession::SoupNetworkSession(PAL::SessionID sessionID, SoupCookieJar* 
         soup_cookie_jar_set_accept_policy(jar.get(), SOUP_COOKIE_JAR_ACCEPT_NO_THIRD_PARTY);
     }
 
-    g_object_set(m_soupSession.get(),
-        SOUP_SESSION_MAX_CONNS, maxConnections,
-        SOUP_SESSION_MAX_CONNS_PER_HOST, maxConnectionsPerHost,
-        SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER,
-        SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_SNIFFER,
-        SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_PROXY_RESOLVER_DEFAULT,
-        SOUP_SESSION_ADD_FEATURE, jar.get(),
-        SOUP_SESSION_USE_THREAD_CONTEXT, TRUE,
-        SOUP_SESSION_SSL_USE_SYSTEM_CA_FILE, TRUE,
-        SOUP_SESSION_SSL_STRICT, TRUE,
-        nullptr);
+    m_soupSession = adoptGRef(soup_session_new_with_options(
+        "max-conns", maxConnections,
+        "max-conns-per-host", maxConnectionsPerHost,
+        "timeout", 0,
+        nullptr));
+
+    soup_session_add_feature_by_type(m_soupSession.get(), SOUP_TYPE_CONTENT_SNIFFER);
+#if SOUP_CHECK_VERSION(2, 67, 90)
+    soup_session_add_feature_by_type(m_soupSession.get(), SOUP_TYPE_WEBSOCKET_EXTENSION_MANAGER);
+#endif
 
     if (!initialAcceptLanguages().isNull())
         setAcceptLanguages(initialAcceptLanguages());
 
-#if SOUP_CHECK_VERSION(2, 53, 92)
-    if (soup_auth_negotiate_supported() && !sessionID.isEphemeral()) {
-        g_object_set(m_soupSession.get(),
-            SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_AUTH_NEGOTIATE,
-            nullptr);
-    }
-#else
-    UNUSED_PARAM(sessionID);
-#endif
+    if (soup_auth_negotiate_supported() && !m_sessionID.isEphemeral())
+        soup_session_add_feature_by_type(m_soupSession.get(), SOUP_TYPE_AUTH_NEGOTIATE);
 
     if (proxySettings().mode != SoupNetworkProxySettings::Mode::Default)
         setupProxy();
@@ -236,7 +228,11 @@ void SoupNetworkSession::setupLogger()
     if (LogNetwork.state != WTFLogChannelOn || soup_session_get_feature(m_soupSession.get(), SOUP_TYPE_LOGGER))
         return;
 
+#if USE(SOUP2)
     GRefPtr<SoupLogger> logger = adoptGRef(soup_logger_new(SOUP_LOGGER_LOG_BODY, -1));
+#else
+    GRefPtr<SoupLogger> logger = adoptGRef(soup_logger_new(SOUP_LOGGER_LOG_BODY));
+#endif
     soup_session_add_feature(m_soupSession.get(), SOUP_SESSION_FEATURE(logger.get()));
     soup_logger_set_printer(logger.get(), soupLogPrinter, nullptr, nullptr);
 #endif
@@ -291,10 +287,8 @@ void SoupNetworkSession::setupProxy()
     GRefPtr<GProxyResolver> resolver;
     switch (proxySettings().mode) {
     case SoupNetworkProxySettings::Mode::Default: {
-        GRefPtr<GProxyResolver> currentResolver;
-        g_object_get(m_soupSession.get(), SOUP_SESSION_PROXY_RESOLVER, &currentResolver.outPtr(), nullptr);
         GProxyResolver* defaultResolver = g_proxy_resolver_get_default();
-        if (currentResolver.get() == defaultResolver)
+        if (defaultResolver == soup_session_get_proxy_resolver(m_soupSession.get()))
             return;
         resolver = defaultResolver;
         break;
@@ -313,7 +307,7 @@ void SoupNetworkSession::setupProxy()
         break;
     }
 
-    g_object_set(m_soupSession.get(), SOUP_SESSION_PROXY_RESOLVER, resolver.get(), nullptr);
+    soup_session_set_proxy_resolver(m_soupSession.get(), resolver.get());
     soup_session_abort(m_soupSession.get());
 }
 
@@ -364,7 +358,7 @@ void SoupNetworkSession::setInitialAcceptLanguages(const CString& languages)
 
 void SoupNetworkSession::setAcceptLanguages(const CString& languages)
 {
-    g_object_set(m_soupSession.get(), "accept-language", languages.data(), nullptr);
+    soup_session_set_accept_language(m_soupSession.get(), languages.data());
 }
 
 #if ENABLE(NETWORK_CHANGE_DETECTION)

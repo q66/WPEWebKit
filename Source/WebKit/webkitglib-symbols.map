@@ -2,6 +2,8 @@
 global:
   jsc_*;
   webkit_*;
+  JS*;
+  jscContextGetJSContext;
   extern "C++" {
     "WebKit::GPUProcessMain(int, char**)";
     "WebKit::NetworkProcessMain(int, char**)";

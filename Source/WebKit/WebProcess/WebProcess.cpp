@@ -186,10 +186,12 @@ namespace WebKit {
 using namespace JSC;
 using namespace WebCore;
 
+#if !PLATFORM(GTK) && !PLATFORM(WPE)
 NO_RETURN static void callExit(IPC::Connection*)
 {
     _exit(EXIT_SUCCESS);
 }
+#endif
 
 WebProcess& WebProcess::singleton()
 {
@@ -260,9 +262,13 @@ void WebProcess::initializeConnection(IPC::Connection* connection)
 {
     AuxiliaryProcess::initializeConnection(connection);
 
+// Do not call exit in background queue for GTK and WPE because we need to ensure
+// atexit handlers are called in the main thread to cleanup resources like EGL displays.
+#if !PLATFORM(GTK) && !PLATFORM(WPE)
     // We call _exit() directly from the background queue in case the main thread is unresponsive
     // and AuxiliaryProcess::didClose() does not get called.
     connection->setDidCloseOnConnectionWorkQueueCallback(callExit);
+#endif
 
 #if !PLATFORM(GTK) && !PLATFORM(WPE)
     connection->setShouldExitOnSyncMessageSendFailure(true);

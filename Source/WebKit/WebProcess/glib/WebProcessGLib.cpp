@@ -29,6 +29,7 @@
 
 #include "WebKitExtensionManager.h"
 #include "WebKitWebExtensionPrivate.h"
+#include "WebPage.h"
 #include "WebProcessCreationParameters.h"
 #include <JavaScriptCore/RemoteInspector.h>
 
@@ -50,6 +51,20 @@
 namespace WebKit {
 
 using namespace WebCore;
+
+void WebProcess::stopRunLoop()
+{
+    // Pages are normally closed after Close message is received from the UI
+    // process, but it can happen that the connection is closed before the
+    // Close message is processed because the UI process close the socket
+    // right after sending the Close message. Close here any pending page to
+    // ensure the threaded compositor is invalidated and GL resources
+    // released (see https://bugs.webkit.org/show_bug.cgi?id=217655).
+    for (auto& webPage : copyToVector(m_pageMap.values()))
+        webPage->close();
+
+    AuxiliaryProcess::stopRunLoop();
+}
 
 void WebProcess::platformSetCacheModel(CacheModel cacheModel)
 {

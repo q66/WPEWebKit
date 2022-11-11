@@ -173,6 +173,11 @@
 #include "VideoFullscreenModel.h"
 #endif
 
+#include <gst/gst.h>
+
+GST_DEBUG_CATEGORY_EXTERN(webkit_mse_debug);
+#define GST_CAT_DEFAULT webkit_mse_debug
+
 namespace WTF {
 template <>
 struct LogArgument<URL> {
@@ -402,6 +407,9 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document& docum
     , ActiveDOMObject(document)
     , m_progressEventTimer(*this, &HTMLMediaElement::progressEventTimerFired)
     , m_playbackProgressTimer(*this, &HTMLMediaElement::playbackProgressTimerFired)
+#if ENABLE(MEDIA_SOURCE)
+    , m_monitorSourceBuffersTimer(*this, &HTMLMediaElement::monitorSourceBuffersTimerFired)
+#endif
     , m_scanTimer(*this, &HTMLMediaElement::scanTimerFired)
     , m_playbackControlsManagerBehaviorRestrictionsTimer(*this, &HTMLMediaElement::playbackControlsManagerBehaviorRestrictionsTimerFired)
     , m_seekToPlaybackPositionEndedTimer(*this, &HTMLMediaElement::seekToPlaybackPositionEndedTimerFired)
@@ -461,6 +469,9 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document& docum
     setHasCustomStyleResolveCallbacks();
 
     InspectorInstrumentation::addEventListenersToNode(*this);
+
+    GST_DEBUG("### DEBUG ### Starting monitorSourceBuffersTimer");
+    startMonitorSourceBuffersTimer();
 }
 
 void HTMLMediaElement::finishInitialization()
@@ -1361,7 +1372,10 @@ void HTMLMediaElement::selectMediaResource()
                 [this](RefPtr<MediaStream> stream) { m_mediaStreamSrcObject = stream; },
 #endif
 #if ENABLE(MEDIA_SOURCE)
-                [this](RefPtr<MediaSource> source) { m_mediaSource = source; },
+                [this](RefPtr<MediaSource> source) {
+                    m_mediaSource = source;
+                    startMonitorSourceBuffersTimer();
+                },
 #endif
                 [this](RefPtr<Blob> blob) { m_blob = blob; }
             );
@@ -1547,6 +1561,9 @@ void HTMLMediaElement::loadResource(const URL& initialURL, ContentType& contentT
             m_mediaSource = nullptr;
             mediaLoadingFailed(MediaPlayer::NetworkState::FormatError);
         }
+
+        if (m_mediaSource)
+            startMonitorSourceBuffersTimer();
     }
 #endif
 #if ENABLE(MEDIA_STREAM)
@@ -2327,6 +2344,7 @@ void HTMLMediaElement::setNetworkState(MediaPlayer::NetworkState state)
 
 void HTMLMediaElement::changeNetworkStateFromLoadingToIdle()
 {
+    GST_DEBUG("stop (A)");
     m_progressEventTimer.stop();
     if (hasMediaControls() && m_player->didLoadingProgress())
         mediaControls()->bufferingProgressed();
@@ -3677,6 +3695,7 @@ void HTMLMediaElement::detachMediaSource()
     if (!m_mediaSource)
         return;
 
+    m_monitorSourceBuffersTimer.stop();
     m_mediaSource->detachFromElement(*this);
     m_mediaSource = nullptr;
 }
@@ -3924,6 +3943,7 @@ static const Seconds maxTimeupdateEventFrequency { 250_ms };
 
 void HTMLMediaElement::startPlaybackProgressTimer()
 {
+    GST_DEBUG("start");
     if (m_playbackProgressTimer.isActive())
         return;
 
@@ -3933,6 +3953,7 @@ void HTMLMediaElement::startPlaybackProgressTimer()
 
 void HTMLMediaElement::playbackProgressTimerFired()
 {
+    GST_DEBUG("tick: monitorSourceBuffers()");
     ASSERT(m_player);
 
     if (m_fragmentEndTime.isValid() && currentMediaTime() >= m_fragmentEndTime && requestedPlaybackRate() > 0) {
@@ -3966,6 +3987,26 @@ void HTMLMediaElement::playbackProgressTimerFired()
         setAutoplayEventPlaybackState(AutoplayEventPlaybackState::None);
     }
 }
+
+#if ENABLE(MEDIA_SOURCE)
+// Frequency high enough to avoid too much delay at recomputing the MediaSource average buffering rate.
+static const Seconds maxMonitorSourceBuffersFrequency { 1000_ms };
+
+void HTMLMediaElement::startMonitorSourceBuffersTimer()
+{
+    GST_DEBUG("start monitorsb timer");
+
+    m_previousMonitorSourceBuffersTime = MonotonicTime::now();
+    m_monitorSourceBuffersTimer.startRepeating(maxMonitorSourceBuffersFrequency);
+}
+
+void HTMLMediaElement::monitorSourceBuffersTimerFired()
+{
+    GST_DEBUG("tick monitorsb: monitorSourceBuffers()");
+    if (m_mediaSource)
+        m_mediaSource->monitorSourceBuffers();
+}
+#endif
 
 void HTMLMediaElement::scheduleTimeupdateEvent(bool periodicEvent)
 {
@@ -5399,6 +5440,7 @@ void HTMLMediaElement::updatePlayState()
         if (!m_player->paused())
             m_player->pause();
         refreshCachedTime();
+        GST_DEBUG("stop (because of m_pausedInternal)");
         m_playbackProgressTimer.stop();
         if (hasMediaControls())
             mediaControls()->playbackStopped();
@@ -5457,6 +5499,7 @@ void HTMLMediaElement::updatePlayState()
             m_player->pause();
         refreshCachedTime();
 
+        GST_DEBUG("stop (because !shouldBePlaying)");
         m_playbackProgressTimer.stop();
         setPlaying(false);
         MediaTime time = currentMediaTime();
@@ -5512,6 +5555,9 @@ void HTMLMediaElement::pauseAndUpdatePlayStateImmediately()
 
 void HTMLMediaElement::stopPeriodicTimers()
 {
+    GST_DEBUG("stop monitorsb (because of stopPeriodicTimers)");
+    m_monitorSourceBuffersTimer.stop();
+    GST_DEBUG("stop progressEventTimer (because of stopPeriodicTimers)");
     m_progressEventTimer.stop();
     m_playbackProgressTimer.stop();
 }

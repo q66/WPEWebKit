@@ -61,6 +61,11 @@
 #include <wtf/StringPrintStream.h>
 #include <wtf/WeakPtr.h>
 
+#include <gst/gst.h>
+
+GST_DEBUG_CATEGORY_EXTERN(webkit_mse_debug);
+#define GST_CAT_DEFAULT webkit_mse_debug
+
 namespace WebCore {
 
 WTF_MAKE_ISO_ALLOCATED_IMPL(SourceBuffer);
@@ -2275,6 +2280,8 @@ void SourceBuffer::monitorBufferingRate()
     m_bufferedSinceLastMonitor = 0;
 
     m_averageBufferRate += (interval.seconds() * ExponentialMovingAverageCoefficient) * (rateSinceLastMonitor - m_averageBufferRate);
+
+    GST_DEBUG("%p: interval: %f, m_bufferedSinceLastMonitor: %f, rateSinceLastMonitor: %f, m_averageBufferRate: %f", this, interval.seconds(), m_bufferedSinceLastMonitor, rateSinceLastMonitor, m_averageBufferRate);
 
     DEBUG_LOG(LOGIDENTIFIER, m_averageBufferRate);
 }

@@ -51,6 +51,11 @@
 #include "VideoTrackList.h"
 #include <wtf/IsoMallocInlines.h>
 
+#include <gst/gst.h>
+
+GST_DEBUG_CATEGORY_EXTERN(webkit_mse_debug);
+#define GST_CAT_DEFAULT webkit_mse_debug
+
 namespace WebCore {
 
 WTF_MAKE_ISO_ALLOCATED_IMPL(MediaSource);
@@ -414,6 +419,8 @@ bool MediaSource::hasFutureTime()
 
 void MediaSource::monitorSourceBuffers()
 {
+    GST_DEBUG("(A)");
+
     if (isClosed())
         return;
 
@@ -446,6 +453,7 @@ void MediaSource::monitorSourceBuffers()
     // ↳ If HTMLMediaElement.buffered contains a TimeRange that includes the current
     //  playback position and enough data to ensure uninterrupted playback:
     auto ranges = buffered();
+    GST_DEBUG("(B)");
     if (std::all_of(m_activeSourceBuffers->begin(), m_activeSourceBuffers->end(), [&](auto& sourceBuffer) {
         return sourceBuffer->canPlayThroughRange(*ranges);
     })) {

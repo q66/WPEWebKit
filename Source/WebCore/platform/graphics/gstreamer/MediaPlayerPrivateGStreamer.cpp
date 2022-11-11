@@ -1452,7 +1452,13 @@ MediaTime MediaPlayerPrivateGStreamer::playbackPosition() const
     // Position is only available if no async state change is going on and the state is either paused or playing.
     gint64 position = GST_CLOCK_TIME_NONE;
     GstQuery* query = gst_query_new_position(GST_FORMAT_TIME);
-    if (gst_element_query(m_pipeline.get(), query))
+
+    GST_DEBUG("Query (before)");
+    gboolean ok = gst_element_query(m_pipeline.get(), query);
+    GST_DEBUG("Query (after)");
+
+    //if (gst_element_query(m_pipeline.get(), query))
+    if (ok)
         gst_query_parse_position(query, 0, &position);
     gst_query_unref(query);
 

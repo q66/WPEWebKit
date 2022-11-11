@@ -763,9 +763,15 @@ private:
     void pendingActionTimerFired();
     void progressEventTimerFired();
     void playbackProgressTimerFired();
+#if ENABLE(MEDIA_SOURCE)
+    void monitorSourceBuffersTimerFired();
+#endif
     void scanTimerFired();
     void seekTask();
     void startPlaybackProgressTimer();
+#if ENABLE(MEDIA_SOURCE)
+    void startMonitorSourceBuffersTimer();
+#endif
     void startProgressEventTimer();
     void stopPeriodicTimers();
     void cancelPendingTasks();
@@ -956,6 +962,9 @@ private:
 
     Timer m_progressEventTimer;
     Timer m_playbackProgressTimer;
+#if ENABLE(MEDIA_SOURCE)
+    Timer m_monitorSourceBuffersTimer;
+#endif
     Timer m_scanTimer;
     Timer m_playbackControlsManagerBehaviorRestrictionsTimer;
     Timer m_seekToPlaybackPositionEndedTimer;
@@ -1014,6 +1023,9 @@ private:
     MediaTime m_lastSeekTime;
     
     MonotonicTime m_previousProgressTime { MonotonicTime::infinity() };
+#if ENABLE(MEDIA_SOURCE)
+    MonotonicTime m_previousMonitorSourceBuffersTime { MonotonicTime::infinity() };
+#endif
     double m_playbackStartedTime { 0 };
 
     // The last time a timeupdate event was sent (based on monotonic clock).

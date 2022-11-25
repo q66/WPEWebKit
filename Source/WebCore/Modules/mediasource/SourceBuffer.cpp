@@ -144,7 +144,7 @@ SourceBuffer::SourceBuffer(Ref<SourceBufferPrivate>&& sourceBufferPrivate, Media
     , m_groupEndTimestamp(MediaTime::zeroTime())
     , m_buffered(TimeRanges::create())
     , m_appendState(WaitingForSegment)
-    , m_timeOfBufferingMonitor(MonotonicTime::now())
+    , m_timeOfBufferingMonitor(MonotonicTime::fromRawSeconds(0))
     , m_pendingRemoveStart(MediaTime::invalidTime())
     , m_pendingRemoveEnd(MediaTime::invalidTime())
     , m_removeTimer(*this, &SourceBuffer::removeTimerFired)
@@ -2272,6 +2272,14 @@ void SourceBuffer::didDropSample()
 
 void SourceBuffer::monitorBufferingRate()
 {
+    GST_DEBUG("%p: m_timeOfBufferingMonitor: %f", this, m_timeOfBufferingMonitor.secondsSinceEpoch().milliseconds());
+
+    // We avoid the first update of m_averageBufferRate on purpose, but in exchange we get a more accurate m_timeOfBufferingMonitor initial time.
+    if (!m_timeOfBufferingMonitor) {
+        GST_DEBUG("%p: Skipping initial buffering rate computation", this);
+        m_timeOfBufferingMonitor = MonotonicTime::now();
+        return;
+    }
     MonotonicTime now = MonotonicTime::now();
     Seconds interval = now - m_timeOfBufferingMonitor;
     double rateSinceLastMonitor = m_bufferedSinceLastMonitor / interval.seconds();

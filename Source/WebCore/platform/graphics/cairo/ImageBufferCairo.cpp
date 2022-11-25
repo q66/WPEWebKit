@@ -169,21 +169,22 @@ void ImageBufferData::swapBuffersIfNeeded()
 
     GLContext* previousActiveContext = GLContext::current();
 
-    if (!m_compositorTexture) {
+    if (!m_compositorTexture)
         createCompositorBuffer();
 
-        auto proxyOperation =
-            [this](TextureMapperPlatformLayerProxy& proxy)
-            {
+    auto proxyOperation =
+        [this](TextureMapperPlatformLayerProxy& proxy)
+        {
+            if (proxy.isEmpty()) {
                 LockHolder holder(proxy.lock());
                 proxy.pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_compositorTexture, m_size, TextureMapperGL::ShouldBlend, GL_RGBA));
-            };
+            }
+        };
 #if USE(NICOSIA)
-        proxyOperation(downcast<Nicosia::ContentLayerTextureMapperImpl>(m_nicosiaLayer->impl()).proxy());
+    proxyOperation(downcast<Nicosia::ContentLayerTextureMapperImpl>(m_nicosiaLayer->impl()).proxy());
 #else
-        proxyOperation(*m_platformLayerProxy);
+    proxyOperation(*m_platformLayerProxy);
 #endif
-    }
 
     // It would be great if we could just swap the buffers here as we do with webgl, but that breaks the cases
     // where one frame uses the content already rendered in the previous frame. So we just copy the content
@@ -295,12 +296,6 @@ ImageBuffer::ImageBuffer(const FloatSize& size, float resolutionScale, ColorSpac
         m_data.createCairoGLSurface();
         if (!m_data.m_surface || cairo_surface_status(m_data.m_surface.get()) != CAIRO_STATUS_SUCCESS)
             m_data.m_renderingMode = Unaccelerated; // If allocation fails, fall back to non-accelerated path.
-#if USE(COORDINATED_GRAPHICS_THREADED)
-        else {
-            LockHolder locker(m_data.m_platformLayerProxy->lock());
-            m_data.m_platformLayerProxy->pushNextBuffer(std::make_unique<TextureMapperPlatformLayerBuffer>(m_data.m_texture, m_size, TextureMapperGL::ShouldBlend, GraphicsContext3D::RGBA));
-        }
-#endif
     }
     if (m_data.m_renderingMode == Unaccelerated)
 #else

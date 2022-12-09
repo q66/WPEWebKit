@@ -1987,11 +1987,16 @@ bool MediaPlayerPrivateGStreamer::didLoadingProgress() const
     if (isLiveStream())
         return true;
 
+    // A WebKitWebSource with download paused on purpose isn't stalled because of network.
+    if (m_source && WEBKIT_IS_WEB_SRC(m_source.get()) && webKitWebSrcIsPaused(WEBKIT_WEB_SRC(m_source.get())))
+        return true;
+
     if (UNLIKELY(!m_pipeline || !durationMediaTime() || (!isMediaSource() && !totalBytes())))
         return false;
 
     MediaTime currentMaxTimeLoaded = maxTimeLoaded();
-    bool didLoadingProgress = currentMaxTimeLoaded != m_maxTimeLoadedAtLastDidLoadingProgress;
+    bool didLoadingProgress = currentMaxTimeLoaded != m_maxTimeLoadedAtLastDidLoadingProgress
+        && currentMaxTimeLoaded > m_cachedPosition;
     m_maxTimeLoadedAtLastDidLoadingProgress = currentMaxTimeLoaded;
     GST_LOG("didLoadingProgress: %s", toString(didLoadingProgress).utf8().data());
     return didLoadingProgress;

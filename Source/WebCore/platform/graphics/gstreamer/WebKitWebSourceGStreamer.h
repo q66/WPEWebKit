@@ -51,6 +51,7 @@ struct _WebKitWebSrcClass {
 GType webkit_web_src_get_type(void);
 void webKitWebSrcSetMediaPlayer(WebKitWebSrc*, WebCore::MediaPlayer*);
 bool webKitSrcPassedCORSAccessCheck(WebKitWebSrc*);
+bool webKitWebSrcIsPaused(WebKitWebSrc*);
 
 G_END_DECLS
 

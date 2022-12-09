@@ -864,6 +864,11 @@ bool webKitSrcPassedCORSAccessCheck(WebKitWebSrc* src)
     return src->priv->didPassAccessControlCheck;
 }
 
+bool webKitWebSrcIsPaused(WebKitWebSrc* src)
+{
+    return src->priv->paused;
+}
+
 CachedResourceStreamingClient::CachedResourceStreamingClient(WebKitWebSrc* src, ResourceRequest&& request)
     : m_src(GST_ELEMENT(src))
     , m_request(WTFMove(request))

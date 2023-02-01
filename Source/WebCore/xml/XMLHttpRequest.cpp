@@ -628,6 +628,12 @@ ExceptionOr<void> XMLHttpRequest::createRequest()
     options.filteringPolicy = ResponseFilteringPolicy::Enable;
     options.contentEncodingSniffingPolicy = ContentEncodingSniffingPolicy::Disable;
 
+    if (responseType() == ResponseType::Arraybuffer || getenv("WPE_DISABLE_XHR_RESPONSE_CACHING")) {
+        options.dataBufferingPolicy = DataBufferingPolicy::DoNotBufferData;
+        options.cachingPolicy = CachingPolicy::DisallowCaching;
+        request.setCachePolicy(ResourceRequestCachePolicy::DoNotUseAnyCache);
+    }
+
     if (m_timeoutMilliseconds) {
         if (!m_async)
             request.setTimeoutInterval(m_timeoutMilliseconds / 1000.0);

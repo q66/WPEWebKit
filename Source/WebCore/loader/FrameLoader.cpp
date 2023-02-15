@@ -83,6 +83,7 @@
 #include "IgnoreOpensDuringUnloadCountIncrementer.h"
 #include "InspectorController.h"
 #include "InspectorInstrumentation.h"
+#include "LegacySchemeRegistry.h"
 #include "LinkLoader.h"
 #include "LoaderStrategy.h"
 #include "LocalDOMWindow.h"
@@ -2226,7 +2227,8 @@ void FrameLoader::commitProvisionalLoad()
         // We are doing this here because we know for sure that a new page is about to be loaded.
         BackForwardCache::singleton().addIfCacheable(*frame->history().protectedCurrentItem(), frame->protectedPage().get());
         
-        WebCore::jettisonExpensiveObjectsOnTopLevelNavigation();
+        if (pdl && LegacySchemeRegistry::shouldLoadURLSchemeAsEmptyDocument(pdl->request().url().protocol().toStringWithoutCopying()))
+            WebCore::jettisonExpensiveObjectsOnTopLevelNavigation();
     }
 
     if (m_loadType != FrameLoadType::Replace)

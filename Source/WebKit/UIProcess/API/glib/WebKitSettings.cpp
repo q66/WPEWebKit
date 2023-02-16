@@ -179,6 +179,8 @@ enum {
     PROP_ENABLE_WEBRTC,
     PROP_DISABLE_WEB_SECURITY,
     PROP_ENABLE_NON_COMPOSITED_WEBGL,
+    PROP_ALLOW_RUNNING_OF_INSECURE_CONTENT,
+    PROP_ALLOW_DISPLAY_OF_INSECURE_CONTENT,
     PROP_ALLOW_SCRIPTS_TO_CLOSE_WINDOWS,
     PROP_ENABLE_DIRECTORY_UPLOAD,
     N_PROPERTIES,
@@ -419,6 +421,12 @@ ALLOW_DEPRECATED_DECLARATIONS_BEGIN
     case PROP_ENABLE_NON_COMPOSITED_WEBGL:
         webkit_settings_set_enable_non_composited_webgl(settings, g_value_get_boolean(value));
         break;
+    case PROP_ALLOW_RUNNING_OF_INSECURE_CONTENT:
+        webkit_settings_set_allow_running_of_insecure_content(settings, g_value_get_boolean(value));
+        break;
+    case PROP_ALLOW_DISPLAY_OF_INSECURE_CONTENT:
+        webkit_settings_set_allow_display_of_insecure_content(settings, g_value_get_boolean(value));
+        break;
     case PROP_ALLOW_SCRIPTS_TO_CLOSE_WINDOWS:
         webkit_settings_set_allow_scripts_to_close_windows(settings, g_value_get_boolean(value));
         break;
@@ -635,6 +643,12 @@ ALLOW_DEPRECATED_DECLARATIONS_BEGIN
         break;
     case PROP_ENABLE_NON_COMPOSITED_WEBGL:
         g_value_set_boolean(value, webkit_settings_get_enable_non_composited_webgl(settings));
+        break;
+    case PROP_ALLOW_RUNNING_OF_INSECURE_CONTENT:
+        g_value_set_boolean(value, webkit_settings_get_allow_running_of_insecure_content(settings));
+        break;
+    case PROP_ALLOW_DISPLAY_OF_INSECURE_CONTENT:
+        g_value_set_boolean(value, webkit_settings_get_allow_display_of_insecure_content(settings));
         break;
     case PROP_ALLOW_SCRIPTS_TO_CLOSE_WINDOWS:
         g_value_set_boolean(value, webkit_settings_get_allow_scripts_to_close_windows(settings));
@@ -1658,6 +1672,30 @@ static void webkit_settings_class_init(WebKitSettingsClass* klass)
         _("Whether non composited WebGL should be enabled"),
         FALSE,
         readWriteConstructParamFlags);
+
+    /**
+     * WebKitSettings:allow-running-of-insecure-content:
+     *
+     * Allow running of insecure content on pages
+     */
+    sObjProperties[PROP_ALLOW_RUNNING_OF_INSECURE_CONTENT] = g_param_spec_boolean(
+            "allow-running-of-insecure-content",
+            _("Allow running insecure content"),
+            _("Whether running insecure content should be allowed."),
+            FALSE,
+            readWriteConstructParamFlags);
+
+    /**
+     * WebKitSettings:allow-display-of-insecure-content:
+     *
+     * Allow display of insecure content on pages
+     */
+    sObjProperties[PROP_ALLOW_DISPLAY_OF_INSECURE_CONTENT] = g_param_spec_boolean(
+            "allow-display-of-insecure-content",
+            _("Allow display insecure content"),
+            _("Whether display insecure content should be allowed."),
+            FALSE,
+            readWriteConstructParamFlags);
 
     /**
      * WebKitSettings:allow-scripts-to-close-windows:
@@ -4236,6 +4274,76 @@ void webkit_settings_set_enable_non_composited_webgl(WebKitSettings* settings, g
 
     priv->preferences->setNonCompositedWebGLEnabled(enabled);
     g_object_notify(G_OBJECT(settings), "enable-non-composited-webgl");
+}
+
+/**
+ * webkit_settings_get_allow_running_of_insecure_content:
+ * @settings: a #WebKitSettings
+ *
+ * Get the #WebKitSettings:allow-running-of-insecure-content property.
+ *
+ * Returns: %TRUE If running of insecure content is allowed or %FALSE otherwise.
+ */
+gboolean webkit_settings_get_allow_running_of_insecure_content(WebKitSettings* settings)
+{
+    g_return_val_if_fail(WEBKIT_IS_SETTINGS(settings), FALSE);
+
+    return settings->priv->preferences->allowRunningOfInsecureContent();
+}
+
+/**
+ * webkit_settings_set_allow_running_of_insecure_content:
+ * @settings: a #WebKitSettings
+ * @allowed: Value to be set
+ *
+ * Set the #WebKitSettings:allow-running-of-insecure-content property.
+ */
+void webkit_settings_set_allow_running_of_insecure_content(WebKitSettings* settings, gboolean allowed)
+{
+    g_return_if_fail(WEBKIT_IS_SETTINGS(settings));
+
+    WebKitSettingsPrivate* priv = settings->priv;
+    bool currentValue = priv->preferences->allowRunningOfInsecureContent();
+    if (currentValue == allowed)
+        return;
+
+    priv->preferences->setAllowRunningOfInsecureContent(allowed);
+    g_object_notify_by_pspec(G_OBJECT(settings), sObjProperties[PROP_ALLOW_RUNNING_OF_INSECURE_CONTENT]);
+}
+
+/**
+ * webkit_settings_get_allow_display_of_insecure_content:
+ * @settings: a #WebKitSettings
+ *
+ * Get the #WebKitSettings:allow-display-of-insecure-content property.
+ *
+ * Returns: %TRUE If display of insecure content is allowed or %FALSE otherwise.
+ */
+gboolean webkit_settings_get_allow_display_of_insecure_content(WebKitSettings* settings)
+{
+    g_return_val_if_fail(WEBKIT_IS_SETTINGS(settings), FALSE);
+
+    return settings->priv->preferences->allowDisplayOfInsecureContent();
+}
+
+/**
+ * webkit_settings_set_allow_display_of_insecure_content:
+ * @settings: a #WebKitSettings
+ * @allowed: Value to be set
+ *
+ * Set the #WebKitSettings:allow-display-of-insecure-content property.
+ */
+void webkit_settings_set_allow_display_of_insecure_content(WebKitSettings* settings, gboolean allowed)
+{
+    g_return_if_fail(WEBKIT_IS_SETTINGS(settings));
+
+    WebKitSettingsPrivate* priv = settings->priv;
+    bool currentValue = priv->preferences->allowDisplayOfInsecureContent();
+    if (currentValue == allowed)
+        return;
+
+    priv->preferences->setAllowDisplayOfInsecureContent(allowed);
+    g_object_notify_by_pspec(G_OBJECT(settings), sObjProperties[PROP_ALLOW_DISPLAY_OF_INSECURE_CONTENT]);
 }
 
 /**

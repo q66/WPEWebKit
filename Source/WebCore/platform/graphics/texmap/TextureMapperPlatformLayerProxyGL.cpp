@@ -102,7 +102,14 @@ void TextureMapperPlatformLayerProxyGL::invalidate()
             m_targetLayer = nullptr;
         }
 
-        m_currentBuffer = nullptr;
+        // There are situations where the proxy gets moved from a layer to another, causing it to be invalidated.
+        // When using holepunch, that invalidation frees the current buffer, and there's no notification
+        // to the player that a new one is needed, so there's nothing to render and the hole is not visible.
+        // To avoid this, don't remove the current buffer on invalidation if it's a holepunch buffer. It will be
+        // released when the proxy gets destroyed instead. Holepunch buffers don't really hold any GL asset, so
+        // we're not in a hurry to free them anyway.
+        if (m_currentBuffer && !m_currentBuffer->isHolePunchBuffer())
+            m_currentBuffer = nullptr;
         m_pendingBuffer = nullptr;
         m_releaseUnusedBuffersTimer = nullptr;
         m_usedBuffers.clear();

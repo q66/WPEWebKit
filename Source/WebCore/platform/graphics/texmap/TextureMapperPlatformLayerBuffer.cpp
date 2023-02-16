@@ -168,6 +168,11 @@ void TextureMapperPlatformLayerBuffer::notifyPositionToHolePunchClient(const Flo
         m_holePunchClient->setVideoRectangle(enclosingIntRect(modelViewMatrix.mapRect(targetRect)));
 }
 
+bool TextureMapperPlatformLayerBuffer::isHolePunchBuffer()
+{
+    return (m_extraFlags & TextureMapperGL::ShouldNotBlend) && !m_texture;
+}
+
 } // namespace WebCore
 
 #endif // USE(COORDINATED_GRAPHICS)

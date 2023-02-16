@@ -1282,7 +1282,7 @@ void AppendPipeline::disconnectDemuxerSrcPadFromAppsinkFromAnyThread(GstPad* dem
     }
     if (remainingPad) {
         auto probeId = GPOINTER_TO_ULONG(g_object_get_data(G_OBJECT(remainingPad), "blackHoleProbeId"));
-        if (remainingPad && probeId) {
+        if (probeId) {
 
             gst_pad_remove_probe(remainingPad, probeId);
 
@@ -1292,6 +1292,10 @@ void AppendPipeline::disconnectDemuxerSrcPadFromAppsinkFromAnyThread(GstPad* dem
             GST_DEBUG("The remaining compatible pad has a blackHoleProbe, reconnecting as main pad. oldPad: %" GST_PTR_FORMAT ", newPad: %" GST_PTR_FORMAT ", peerPad: %" GST_PTR_FORMAT, demuxerSrcPad, remainingPad, oldPeerPad.get());
 
             gst_pad_link(remainingPad, oldPeerPad.get());
+
+            // after pad relinkage attach the same probe which updates gstsegment
+            gst_pad_add_probe(remainingPad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, matroskademuxForceSegmentStartToEqualZero, nullptr, nullptr);
+
             if (m_parser)
                 gst_element_set_state(m_parser.get(), GST_STATE_NULL);
             gst_element_set_state(m_appsink.get(), GST_STATE_NULL);

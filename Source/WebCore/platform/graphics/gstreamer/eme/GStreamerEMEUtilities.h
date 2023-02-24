@@ -110,10 +110,10 @@ public:
 
     static const char* uuidToKeySystem(const String& uuid)
     {
-        if (uuid == s_ClearKeyUUID)
+        if (equalIgnoringASCIICase(uuid, s_ClearKeyUUID))
             return s_ClearKeyKeySystem;
 
-        if (uuid == s_UnspecifiedUUID)
+        if (equalIgnoringASCIICase(uuid, s_UnspecifiedUUID))
 #if USE(OPENCDM)
             return s_WidevineKeySystem;
 #else
@@ -121,10 +121,10 @@ public:
 #endif
 
 #if USE(OPENCDM)
-        if (uuid == s_PlayReadyUUID)
+        if (equalIgnoringASCIICase(uuid, s_PlayReadyUUID))
             return s_PlayReadyKeySystems[0];
 
-        if (uuid == s_WidevineUUID)
+        if (equalIgnoringASCIICase(uuid, s_WidevineUUID))
             return s_WidevineKeySystem;
 #endif
 

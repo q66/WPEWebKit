@@ -244,6 +244,9 @@ public:
     void setShouldAcceptInsecureCertificatesForWebSockets(bool accept) { m_shouldAcceptInsecureCertificatesForWebSockets = accept; }
 #endif
 
+    unsigned localStorageQuota() const { return m_localStorageQuota; }
+    void setLocalStorageQuota(unsigned quota) { m_localStorageQuota = quota; }
+
 private:
     WebsiteDataStoreConfiguration(const String& baseCacheDirectory, const String& baseDataDirectory);
     static Ref<WebsiteDataStoreConfiguration> create(IsPersistent isPersistent, ShouldInitializePaths shouldInitializePaths) { return adoptRef(*new WebsiteDataStoreConfiguration(isPersistent, shouldInitializePaths)); }
@@ -322,6 +325,7 @@ private:
 #if PLATFORM(COCOA)
     RetainPtr<CFDictionaryRef> m_proxyConfiguration;
 #endif
+    unsigned m_localStorageQuota;
 };
 
 }

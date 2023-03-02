@@ -192,6 +192,7 @@ Ref<WebsiteDataStoreConfiguration> WebsiteDataStoreConfiguration::copy() const
 #if !HAVE(NSURLSESSION_WEBSOCKET)
     copy->m_shouldAcceptInsecureCertificatesForWebSockets = this->m_shouldAcceptInsecureCertificatesForWebSockets;
 #endif
+    copy-> m_localStorageQuota = this->m_localStorageQuota;
 
     return copy;
 }

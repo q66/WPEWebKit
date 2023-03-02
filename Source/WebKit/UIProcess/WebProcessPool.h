@@ -281,6 +281,7 @@ public:
 
 #if USE(SOUP)
     static void setNetworkProcessMemoryPressureHandlerConfiguration(const std::optional<MemoryPressureHandler::Configuration>& configuration) { s_networkProcessMemoryPressureHandlerConfiguration = configuration; }
+    static void setLocalStorageQuota(unsigned quota) { s_localStorageQuota = quota; }
 #endif
     void setEnhancedAccessibility(bool);
     
@@ -694,6 +695,7 @@ private:
 
 #if USE(SOUP)
     static std::optional<MemoryPressureHandler::Configuration> s_networkProcessMemoryPressureHandlerConfiguration;
+    static unsigned s_localStorageQuota;
 #endif
 
 #if PLATFORM(MAC)

@@ -370,10 +370,10 @@ AllowWebGLInWorkers:
       default: false
     WebKit:
       "ENABLE(WEBGL_IN_WORKERS)": true
-      default: false
+      default: true
     WebCore:
       "ENABLE(WEBGL_IN_WORKERS)": true
-      default: false
+      default: true
 
 AllowsAirPlayForMediaPlayback:
   type: bool
@@ -4805,10 +4805,10 @@ OffscreenCanvasEnabled:
       default: false
     WebKit:
       "PLATFORM(COCOA)": true
-      default: false
+      default: true
     WebCore:
       "PLATFORM(COCOA)": true
-      default: false
+      default: true
 
 OffscreenCanvasInWorkersEnabled:
   type: bool
@@ -4823,10 +4823,10 @@ OffscreenCanvasInWorkersEnabled:
       default: false
     WebKit:
       "PLATFORM(COCOA)": true
-      default: false
+      default: true
     WebCore:
       "PLATFORM(COCOA)": true
-      default: false
+      default: true
 
 OpusDecoderEnabled:
   type: bool

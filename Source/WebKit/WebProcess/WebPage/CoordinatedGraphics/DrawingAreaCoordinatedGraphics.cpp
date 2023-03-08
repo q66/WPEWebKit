@@ -251,6 +251,11 @@ void DrawingAreaCoordinatedGraphics::updatePreferences(const WebPreferencesStore
     m_alwaysUseCompositing = settings.acceleratedCompositingEnabled() && settings.forceCompositingMode();
 
     m_supportsAsyncScrolling = store.getBoolValueForKey(WebPreferencesKey::threadedScrollingEnabledKey());
+
+    // Disable offscreenCanvas APIs when nonCompositedWebGL is enabled.
+    settings.setOffscreenCanvasEnabled(!store.getBoolValueForKey(WebPreferencesKey::nonCompositedWebGLEnabledKey()));
+    settings.setOffscreenCanvasInWorkersEnabled(!store.getBoolValueForKey(WebPreferencesKey::nonCompositedWebGLEnabledKey()));
+
 #if ENABLE(DEVELOPER_MODE)
     if (m_supportsAsyncScrolling) {
         auto* disableAsyncScrolling = getenv("WEBKIT_DISABLE_ASYNC_SCROLLING");

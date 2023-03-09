@@ -99,6 +99,7 @@ public:
 
     bool hasRunningAnimations() const;
     bool hasActiveAnimationsOfType(WebCore::AnimatedProperty type) const;
+    float maximumScaleFactor() const;
 
 private:
     Vector<Animation> m_animations;

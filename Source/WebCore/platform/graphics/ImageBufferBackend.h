@@ -28,6 +28,7 @@
 #include "CopyImageOptions.h"
 #include "DestinationColorSpace.h"
 #include "FloatRect.h"
+#include "GraphicsLayerContentsDisplayDelegate.h"
 #include "GraphicsTypesGL.h"
 #include "ImageBufferAllocator.h"
 #include "ImageBufferBackendParameters.h"
@@ -128,6 +129,7 @@ public:
     virtual void putPixelBuffer(const PixelBuffer&, const IntRect& srcRect, const IntPoint& destPoint, AlphaPremultiplication destFormat) = 0;
 
     virtual bool copyToPlatformTexture(GraphicsContextGL&, GCGLenum, PlatformGLObject, GCGLenum, bool, bool) { return false; }
+    virtual RefPtr<GraphicsLayerContentsDisplayDelegate> layerContentsDisplayDelegate() const { return { }; }
 
 #if USE(CAIRO)
     virtual RefPtr<cairo_surface_t> createCairoSurface() { return nullptr; }

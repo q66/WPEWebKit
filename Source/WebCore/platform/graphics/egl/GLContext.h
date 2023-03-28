@@ -116,6 +116,7 @@ public:
 
     PlatformDisplay& display() const { return m_display; }
     unsigned version();
+    EGLContext context() const { return m_context; }
     EGLConfig config() const { return m_config; }
 
     WEBCORE_EXPORT bool makeContextCurrent();

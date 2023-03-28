@@ -349,7 +349,7 @@ CanvasRenderingContext2D* HTMLCanvasElement::createContext2d(const String& type,
 
     m_context = CanvasRenderingContext2D::create(*this, WTFMove(settings), document().inQuirksMode());
 
-#if USE(IOSURFACE_CANVAS_BACKING_STORE)
+#if USE(IOSURFACE_CANVAS_BACKING_STORE) || ENABLE(ACCELERATED_2D_CANVAS)
     // Need to make sure a RenderLayer and compositing layer get created for the Canvas.
     invalidateStyleAndLayerComposition();
 #endif
@@ -483,7 +483,7 @@ ImageBitmapRenderingContext* HTMLCanvasElement::createContextBitmapRenderer(cons
 
     m_context = ImageBitmapRenderingContext::create(*this, WTFMove(settings));
 
-#if USE(IOSURFACE_CANVAS_BACKING_STORE)
+#if USE(IOSURFACE_CANVAS_BACKING_STORE) || ENABLE(ACCELERATED_2D_CANVAS)
     // Need to make sure a RenderLayer and compositing layer get created for the Canvas.
     invalidateStyleAndLayerComposition();
 #endif
@@ -892,7 +892,7 @@ void HTMLCanvasElement::createImageBuffer() const
     m_didClearImageBuffer = true;
     setImageBuffer(allocateImageBuffer(m_usesDisplayListDrawing.value_or(false), m_avoidBackendSizeCheckForTesting));
 
-#if USE(IOSURFACE_CANVAS_BACKING_STORE)
+#if USE(IOSURFACE_CANVAS_BACKING_STORE) || ENABLE(ACCELERATED_2D_CANVAS)
     if (m_context && m_context->is2d()) {
         // Recalculate compositing requirements if acceleration state changed.
         const_cast<HTMLCanvasElement*>(this)->invalidateStyleAndLayerComposition();

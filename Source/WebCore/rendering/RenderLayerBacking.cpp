@@ -120,7 +120,11 @@ CanvasCompositingStrategy canvasCompositingStrategy(const RenderObject& renderer
     if (context->isGPUBased())
         return CanvasAsLayerContents;
 
+#if ENABLE(ACCELERATED_2D_CANVAS)
+    return CanvasAsLayerContents;
+#else
     return CanvasPaintedToLayer; // On Mac and iOS we paint accelerated canvases into their layers.
+#endif
 }
 
 // This acts as a cache of what we know about what is painting into this RenderLayerBacking.

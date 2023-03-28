@@ -31,6 +31,9 @@
 #if USE(CG)
 #include "ImageBufferCGBitmapBackend.h"
 #elif USE(CAIRO)
+#if ENABLE(ACCELERATED_2D_CANVAS)
+#include "ImageBufferCairoGLSurfaceBackend.h"
+#endif
 #include "ImageBufferCairoImageSurfaceBackend.h"
 #endif
 

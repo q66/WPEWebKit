@@ -6,6 +6,12 @@ list(APPEND WebCore_UNIFIED_SOURCE_LIST_FILES
     "platform/SourcesCairo.txt"
 )
 
+if (ENABLE_ACCELERATED_2D_CANVAS)
+    list(APPEND WebCore_SOURCES
+        "platform/graphics/cairo/ImageBufferCairoGLSurfaceBackend.cpp"
+    )
+endif()
+
 list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/cairo/BackingStoreBackendCairo.h
     platform/graphics/cairo/BackingStoreBackendCairoImpl.h

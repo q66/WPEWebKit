@@ -31,6 +31,7 @@
 #include "Chrome.h"
 #include "Document.h"
 #include "Element.h"
+#include "GLContext.h"
 #include "GraphicsClient.h"
 #include "GraphicsContext.h"
 #include "HTMLCanvasElement.h"
@@ -47,6 +48,20 @@
 #include <JavaScriptCore/JSLock.h>
 #include <atomic>
 #include <wtf/Vector.h>
+
+#if USE(LIBEPOXY)
+#include "EpoxyEGL.h"
+#else
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
+
+#if USE(LIBEPOXY)
+#include <epoxy/gl.h>
+#else
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
 
 static std::atomic<size_t> s_activePixelMemory { 0 };
 
@@ -304,6 +319,35 @@ bool CanvasBase::shouldAccelerate(unsigned area) const
 
 #if USE(IOSURFACE_CANVAS_BACKING_STORE)
     return scriptExecutionContext()->settingsValues().canvasUsesAcceleratedDrawing;
+#elif ENABLE(ACCELERATED_2D_CANVAS)
+    if (!scriptExecutionContext()->settingsValues().canvasUsesAcceleratedDrawing)
+        return false;
+
+    // Do not accelerate canvases on seconday threads.
+    if (!scriptExecutionContext()->isDocument())
+        return false;
+
+    // Do not accelerate canvases when nonCompositedWebGL is enabled.
+    if (scriptExecutionContext()->settingsValues().nonCompositedWebGLEnabled)
+        return false;
+
+    // Don't accelerate canvases if there's an existent glContext that's not the sharing one, as
+    // it means that there's WebGL content being rendered. We can't use GLContext::current() here
+    // because ANGLE doesn't use it, so we need to get the current context with EGL.
+    EGLContext activeContext = eglGetCurrentContext();
+    EGLContext sharingContext = PlatformDisplay::sharedDisplayForCompositing().sharingGLContext()->platformContext();
+    if (activeContext != EGL_NO_CONTEXT && activeContext != sharingContext)
+        return false;
+
+    // Do not accelerate small canvases.
+    if (area < scriptExecutionContext()->settingsValues().minimumAccelerated2dCanvasSize)
+        return false;
+
+    // Do not accelerate canvases that are smaller than 1/4 of the display size.
+    if (area < downcast<Document>(scriptExecutionContext())->view()->root()->hostWindow()->screenSize().area() / 4)
+        return false;
+
+    return true;
 #else
     return false;
 #endif

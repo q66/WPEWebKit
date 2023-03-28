@@ -105,6 +105,7 @@ WEBKIT_OPTION_DEFINE(USE_WOFF2 "Whether to enable support for WOFF2 Web Fonts." 
 # Private options specific to the WPE port.
 WEBKIT_OPTION_DEFINE(USE_GSTREAMER_HOLEPUNCH "Whether to enable GStreamer holepunch" PRIVATE OFF)
 WEBKIT_OPTION_DEFINE(USE_EXTERNAL_HOLEPUNCH "Whether to enable external holepunch" PRIVATE OFF)
+WEBKIT_OPTION_DEFINE(ENABLE_ACCELERATED_2D_CANVAS "Whether to enable accelerated 2D canvas" PRIVATE OFF)
 WEBKIT_OPTION_DEFINE(USE_ANGLE_GBM "Whether to enable ANGLE implementation with GBM" PRIVATE OFF)
 WEBKIT_OPTION_DEFINE(ENABLE_OIPF_VK "Whether to enable OIPF keys for DAE applications" PRIVATE OFF)
 
@@ -149,6 +150,13 @@ WEBKIT_OPTION_END()
 find_package(GI)
 if (ENABLE_INTROSPECTION AND NOT GI_FOUND)
     message(FATAL_ERROR "GObjectIntrospection is needed for ENABLE_INTROSPECTION.")
+endif ()
+
+if (ENABLE_ACCELERATED_2D_CANVAS)
+    find_package(CairoGL 1.14.0 REQUIRED COMPONENTS cairo-egl)
+    if (NOT CairoGL_FOUND)
+        message (FATAL_ERROR "cairo-egl is required for ENABLE_ACCELERATED_2D_CANVAS.")
+    endif ()
 endif ()
 
 find_package(GIDocgen)

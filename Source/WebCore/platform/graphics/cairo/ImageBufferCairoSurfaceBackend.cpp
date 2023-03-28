@@ -57,11 +57,20 @@ GraphicsContext& ImageBufferCairoSurfaceBackend::context() const
 
 IntSize ImageBufferCairoSurfaceBackend::backendSize() const
 {
-    return { cairo_image_surface_get_width(m_surface.get()), cairo_image_surface_get_height(m_surface.get()) };
+    switch (cairo_surface_get_type(m_surface.get())) {
+    case CAIRO_SURFACE_TYPE_IMAGE:
+        return IntSize { cairo_image_surface_get_width(m_surface.get()), cairo_image_surface_get_height(m_surface.get()) };
+    case CAIRO_SURFACE_TYPE_GL:
+        return IntSize { cairo_gl_surface_get_width(m_surface.get()), cairo_gl_surface_get_height(m_surface.get()) };
+    default:
+        break;
+    }
+    return { };
 }
 
 unsigned ImageBufferCairoSurfaceBackend::bytesPerRow() const
 {
+    // TODO: FIXME
     return cairo_image_surface_get_stride(m_surface.get());
 }
 

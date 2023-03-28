@@ -72,7 +72,9 @@ public:
     static const char* errorString(int statusCode);
     static const char* lastErrorString();
 
+    EGLContext context() const { return m_context; }
     EGLConfig config() const { return m_config; }
+
     EGLImage createImage(EGLenum target, EGLClientBuffer, const Vector<EGLAttrib>&) const;
     bool destroyImage(EGLImage) const;
 

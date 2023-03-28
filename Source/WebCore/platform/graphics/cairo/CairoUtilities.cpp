@@ -38,6 +38,7 @@
 #include "Path.h"
 #include "RefPtrCairo.h"
 #include "Region.h"
+#include <cairo-gl.h>
 #include <wtf/Assertions.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/UniqueArray.h>
@@ -314,6 +315,8 @@ IntSize cairoSurfaceSize(cairo_surface_t* surface)
     switch (cairo_surface_get_type(surface)) {
     case CAIRO_SURFACE_TYPE_IMAGE:
         return IntSize(cairo_image_surface_get_width(surface), cairo_image_surface_get_height(surface));
+    case CAIRO_SURFACE_TYPE_GL:
+        return IntSize(cairo_gl_surface_get_width(surface), cairo_gl_surface_get_height(surface));
 #if OS(WINDOWS)
     case CAIRO_SURFACE_TYPE_WIN32:
         surface = cairo_win32_surface_get_image(surface);

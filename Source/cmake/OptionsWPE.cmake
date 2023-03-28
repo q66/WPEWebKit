@@ -12,6 +12,7 @@ endif ()
 set(USER_AGENT_BRANDING "" CACHE STRING "Branding to add to user agent string")
 
 find_package(Cairo 1.14.0 REQUIRED)
+find_package(CairoGL 1.14.0 REQUIRED)
 find_package(Fontconfig 2.8.0 REQUIRED)
 find_package(Freetype 2.4.2 REQUIRED)
 find_package(GLIB 2.56.4 REQUIRED COMPONENTS gio gio-unix gobject gthread gmodule)

@@ -206,6 +206,7 @@ public:
     WEBCORE_EXPORT virtual void putPixelBuffer(const PixelBuffer&, const IntRect& srcRect, const IntPoint& destPoint = { }, AlphaPremultiplication destFormat = AlphaPremultiplication::Premultiplied);
 
     PlatformLayer* platformLayer() const;
+    RefPtr<GraphicsLayerContentsDisplayDelegate> layerContentsDisplayDelegate();
     bool copyToPlatformTexture(GraphicsContextGL&, GCGLenum target, PlatformGLObject destinationTexture, GCGLenum internalformat, bool premultiplyAlpha, bool flipY) const;
 
     WEBCORE_EXPORT bool isInUse() const;

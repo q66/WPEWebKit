@@ -251,12 +251,20 @@ CanvasRenderingContext2DBase::~CanvasRenderingContext2DBase()
 
 bool CanvasRenderingContext2DBase::isAccelerated() const
 {
-#if USE(IOSURFACE_CANVAS_BACKING_STORE)
+#if USE(IOSURFACE_CANVAS_BACKING_STORE) || PLATFORM(WPE)
     auto* context = canvasBase().existingDrawingContext();
     return context && context->renderingMode() == RenderingMode::Accelerated;
 #else
     return false;
 #endif
+}
+
+RefPtr<GraphicsLayerContentsDisplayDelegate> CanvasRenderingContext2DBase::layerContentsDisplayDelegate()
+{
+    auto* buffer = canvasBase().buffer();
+    if (buffer)
+        return buffer->layerContentsDisplayDelegate();
+    return { };
 }
 
 void CanvasRenderingContext2DBase::reset()
@@ -2050,6 +2058,15 @@ void CanvasRenderingContext2DBase::didDraw(std::optional<FloatRect> rect, Option
 {
     if (!drawingContext())
         return;
+
+    if (is<HTMLCanvasElement>(canvasBase())) {
+        auto& canvas = downcast<HTMLCanvasElement>(canvasBase());
+        RenderBox* renderBox = canvas.renderBox();
+        if (isAccelerated() && renderBox && renderBox->hasAcceleratedCompositing()) {
+            renderBox->contentChanged(CanvasPixelsChanged);
+            return;
+        }
+    }
 
     if (!rect) {
         canvasBase().didDraw(std::nullopt);

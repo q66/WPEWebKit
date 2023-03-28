@@ -31,6 +31,7 @@
 #if USE(CG)
 #include "ImageBufferCGBitmapBackend.h"
 #elif USE(CAIRO)
+#include "ImageBufferCairoGLSurfaceBackend.h"
 #include "ImageBufferCairoImageSurfaceBackend.h"
 #endif
 

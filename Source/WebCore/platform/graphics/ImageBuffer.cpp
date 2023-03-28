@@ -75,6 +75,8 @@ RefPtr<ImageBuffer> ImageBuffer::create(const FloatSize& size, RenderingPurpose 
     if (options.contains(ImageBufferOptions::Accelerated) && ProcessCapabilities::canUseAcceleratedBuffers()) {
 #if HAVE(IOSURFACE)
         imageBuffer = IOSurfaceImageBuffer::create(size, resolutionScale, colorSpace, pixelFormat, purpose, creationContext);
+#elif USE(CAIRO)
+        imageBuffer = create<ImageBufferCairoGLSurfaceBackend>(size, resolutionScale, colorSpace, pixelFormat, purpose, creationContext);
 #endif
     }
 
@@ -428,6 +430,13 @@ PlatformLayer* ImageBuffer::platformLayer() const
     if (auto* backend = ensureBackendCreated())
         return backend->platformLayer();
     return nullptr;
+}
+
+RefPtr<GraphicsLayerContentsDisplayDelegate> ImageBuffer::layerContentsDisplayDelegate()
+{
+    if (auto* backend = ensureBackendCreated())
+        return backend->layerContentsDisplayDelegate();
+    return { };
 }
 
 bool ImageBuffer::copyToPlatformTexture(GraphicsContextGL& context, GCGLenum target, PlatformGLObject destinationTexture, GCGLenum internalformat, bool premultiplyAlpha, bool flipY) const

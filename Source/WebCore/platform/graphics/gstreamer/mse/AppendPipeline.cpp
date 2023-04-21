@@ -465,7 +465,7 @@ void AppendPipeline::didReceiveInitializationSegment()
         unsigned audioPadsCount = 0;
         unsigned textPadsCount = 0;
         for (auto pad : GstIteratorAdaptor<GstPad>(GUniquePtr<GstIterator>(gst_element_iterate_src_pads(m_demux.get())))) {
-            if (gst_pad_is_linked(pad))
+            if (!gst_pad_is_linked(pad))
                 continue;
             auto [parsedCaps, streamType, presentationSize] = parseDemuxerSrcPadCaps(adoptGRef(gst_pad_get_current_caps(pad)).get());
             if (streamType == StreamType::Audio)

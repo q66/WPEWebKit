@@ -128,18 +128,19 @@ void webkitGstTraceProcessingTimeForElement(GstElement* element)
     }, gst_element_get_name(element), g_free);
 
     auto srcPad = adoptGRef(gst_element_get_static_pad(element, "src"));
-    gst_pad_add_probe(srcPad.get(), probeType, [](GstPad*, GstPadProbeInfo* info, gpointer userData) -> GstPadProbeReturn {
-        auto* meta = getInternalVideoFrameMetadata(GST_PAD_PROBE_INFO_BUFFER(info));
-        // Some decoders (such as theoradec) do not always copy the input meta to the output frame,
-        // so we need to check the meta is valid here before accessing it.
-        if (!meta)
-            return GST_PAD_PROBE_OK;
+    if (srcPad)
+        gst_pad_add_probe(srcPad.get(), probeType, [](GstPad*, GstPadProbeInfo* info, gpointer userData) -> GstPadProbeReturn {
+            auto* meta = getInternalVideoFrameMetadata(GST_PAD_PROBE_INFO_BUFFER(info));
+            // Some decoders (such as theoradec) do not always copy the input meta to the output frame,
+            // so we need to check the meta is valid here before accessing it.
+            if (!meta)
+                return GST_PAD_PROBE_OK;
 
-        auto elementName = String::fromLatin1(reinterpret_cast<char*>(userData));
-        auto value = meta->priv->processingTimes.get(elementName);
-        meta->priv->processingTimes.set(elementName, std::make_pair(value.first, gst_util_get_timestamp()));
-        return GST_PAD_PROBE_OK;
-    }, gst_element_get_name(element), g_free);
+            auto elementName = String::fromLatin1(reinterpret_cast<char*>(userData));
+            auto value = meta->priv->processingTimes.get(elementName);
+            meta->priv->processingTimes.set(elementName, std::make_pair(value.first, gst_util_get_timestamp()));
+            return GST_PAD_PROBE_OK;
+       }, gst_element_get_name(element), g_free);
 }
 
 VideoFrameMetadata webkitGstBufferGetVideoFrameMetadata(GstBuffer* buffer)

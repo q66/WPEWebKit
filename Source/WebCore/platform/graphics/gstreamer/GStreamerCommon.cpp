@@ -541,6 +541,8 @@ bool gstElementFactoryEquals(GstElement* element, ASCIILiteral name)
 GstElement* createAutoAudioSink(const String& role)
 {
     auto* audioSink = makeGStreamerElement("autoaudiosink", nullptr);
+    GRefPtr<GstCaps> anyCaps = adoptGRef(gst_caps_new_any());
+    g_object_set(audioSink, "filter-caps", anyCaps.get(), nullptr);
     g_signal_connect_data(audioSink, "child-added", G_CALLBACK(+[](GstChildProxy*, GObject* object, gchar*, gpointer userData) {
         auto* role = reinterpret_cast<StringImpl*>(userData);
         auto* objectClass = G_OBJECT_GET_CLASS(object);

@@ -1264,21 +1264,19 @@ void MediaPlayerPrivateGStreamer::loadingFailed(MediaPlayer::NetworkState networ
 
 GstElement* MediaPlayerPrivateGStreamer::createAudioSink()
 {
-#if PLATFORM(BROADCOM) || USE(WESTEROS_SINK) || PLATFORM(AMLOGIC) || PLATFORM(REALTEK)
+#if PLATFORM(AMLOGIC) || PLATFORM(REALTEK)
     // If audio is being controlled by an another pipeline, creating sink here may interfere with
     // audio playback. Instead, check if an audio sink was setup in handleMessage and use it.
     return nullptr;
 #endif
 
     // For platform specific audio sinks, they need to be properly upranked so that they get properly autoplugged.
-
     auto role = m_player->isVideoPlayer() ? "video"_s : "music"_s;
     GstElement* audioSink = createPlatformAudioSink(role);
     RELEASE_ASSERT(audioSink);
     if (!audioSink)
         return nullptr;
-
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && !(USE(WPEWEBKIT_PLATFORM_BCM_NEXUS) || PLATFORM(BROADCOM))
     GstElement* audioSinkBin = gst_bin_new("audio-sink");
     ensureAudioSourceProvider();
     m_audioSourceProvider->configureAudioBin(audioSinkBin, audioSink);
@@ -1879,7 +1877,7 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
         }
 #endif
 
-#if PLATFORM(BROADCOM) || USE(WESTEROS_SINK) || PLATFORM(AMLOGIC) || PLATFORM(REALTEK)
+#if PLATFORM(AMLOGIC) || PLATFORM(REALTEK)
         if (currentState <= GST_STATE_READY && newState >= GST_STATE_READY) {
             // If we didn't create an audio sink, store a reference to the created one.
             if (!m_audioSink) {
@@ -2994,12 +2992,12 @@ void MediaPlayerPrivateGStreamer::createGSTPlayBin(const URL& url)
         m_audioSink = createAudioSink();
 
     g_object_set(m_pipeline.get(), "audio-sink", m_audioSink.get(), "video-sink", createVideoSink(), nullptr);
-
+#if 1
     if (m_shouldPreservePitch && !isMediaStream) {
         if (auto* scale = makeGStreamerElement("scaletempo", nullptr))
             g_object_set(m_pipeline.get(), "audio-filter", scale, nullptr);
     }
-
+#endif
     if (!m_player->isVideoPlayer())
         return;
 
@@ -4067,7 +4065,9 @@ GstElement* MediaPlayerPrivateGStreamer::createHolePunchVideoSink()
 
 #if USE(WPEWEBKIT_PLATFORM_BCM_NEXUS)
     // Nexus boxes use autovideosink.
-    return nullptr;
+    GstElement* videoSink = makeGStreamerElement("brcmvideosink", nullptr);
+    g_object_set(G_OBJECT(videoSink), "zorder", 0.0f, nullptr);
+    return videoSink;
 #endif
 
     return makeGStreamerElement("fakevideosink", nullptr);

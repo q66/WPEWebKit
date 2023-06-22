@@ -328,15 +328,12 @@ static GRefPtr<GstBuffer> webKitWebAudioSrcAllocateBuffers(WebKitWebAudioSrc* sr
 
 static void webKitWebAudioSrcRenderAndPushFrames(const GRefPtr<GstElement>& element, GRefPtr<GstBuffer>&& buffer)
 {
-    printf("### %s: BEGIN\n", __PRETTY_FUNCTION__); fflush(stdout);
-
     auto* src = WEBKIT_WEB_AUDIO_SRC(element.get());
     auto* priv = src->priv;
 
     auto notifyDispatchOnExit = makeScopeExit([priv] {
         Locker locker { priv->dispatchLock };
         priv->dispatchDone = true;
-        printf("### %s: END\n", __PRETTY_FUNCTION__); fflush(stdout);
         priv->dispatchCondition.notifyOne();
     });
 

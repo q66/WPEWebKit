@@ -30,6 +30,8 @@
 #pragma once
 
 #include <wtf/Forward.h>
+#include <wtf/KeyValuePair.h>
+#include <wtf/Vector.h>
 
 namespace WebCore {
 
@@ -48,6 +50,10 @@ enum class ShouldLogWarning { No, Yes };
 bool frameAndAncestorsCanDisplayInsecureContent(LocalFrame&, ContentType, const URL&);
 bool frameAndAncestorsCanRunInsecureContent(LocalFrame&, SecurityOrigin&, const URL&, ShouldLogWarning = ShouldLogWarning::Yes);
 void checkFormForMixedContent(LocalFrame&, const URL&);
+
+void addMixedContentWhitelistEntry(const String& origin, const String& domain);
+void removeMixedContentWhitelistEntry(const String& origin, const String& domain);
+void resetMixedContentWhitelist();
 
 } // namespace MixedContentChecker
 } // namespace WebCore

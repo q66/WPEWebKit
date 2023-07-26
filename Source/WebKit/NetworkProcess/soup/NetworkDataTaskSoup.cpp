@@ -139,6 +139,16 @@ void NetworkDataTaskSoup::createRequest(ResourceRequest&& request)
         soup_message_disable_feature(m_soupMessage.get(), SOUP_TYPE_AUTH_MANAGER);
 #endif
     }
+
+    const char* enablePostReuse = getenv("WPE_POST_CONNECTION_REUSE");
+#if USE(SOUP2)
+    const char* method = m_soupMessage->method;
+#else
+    const char* method = soup_message_get_method(m_soupMessage.get());
+#endif
+    if (method == SOUP_METHOD_POST && enablePostReuse && enablePostReuse[0] != '0')
+        messageFlags |= SOUP_MESSAGE_IDEMPOTENT;
+
     soup_message_set_flags(m_soupMessage.get(), static_cast<SoupMessageFlags>(soup_message_get_flags(m_soupMessage.get()) | messageFlags));
 
 #if SOUP_CHECK_VERSION(2, 67, 1)

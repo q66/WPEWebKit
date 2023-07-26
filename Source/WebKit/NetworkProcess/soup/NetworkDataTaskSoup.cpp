@@ -154,6 +154,10 @@ void NetworkDataTaskSoup::createRequest(ResourceRequest&& request)
     if ((soupMessage->method == SOUP_METHOD_POST || soupMessage->method == SOUP_METHOD_PUT) && !soupMessage->request_body->length)
         soup_message_headers_set_content_length(soupMessage->request_headers, 0);
 
+    const char* enablePostReuse = getenv("WPE_POST_CONNECTION_REUSE");
+    if (soupMessage->method == SOUP_METHOD_POST && enablePostReuse && enablePostReuse[0] != '0')
+        messageFlags |= SOUP_MESSAGE_IDEMPOTENT;
+
     soup_message_set_flags(soupMessage.get(), static_cast<SoupMessageFlags>(soup_message_get_flags(soupMessage.get()) | messageFlags));
 
 #if SOUP_CHECK_VERSION(2, 43, 1)

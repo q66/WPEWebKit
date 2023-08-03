@@ -186,6 +186,24 @@ static void convertToInternalProtocol(URL& url)
         url.setProtocol("webkit+" + url.protocol());
 }
 
+static String trackIdFromPadStreamStartOrNull(GstPad& pad) {
+    auto streamStart = adoptGRef(gst_pad_get_sticky_event(&pad, GST_EVENT_STREAM_START, 0));
+    String streamId = nullString();
+
+    const gchar* streamIdAsCharacters;
+    gst_event_parse_stream_start(streamStart.get(), &streamIdAsCharacters);
+
+    if (streamIdAsCharacters) {
+        StringView streamIdView(streamIdAsCharacters);
+        size_t position = streamIdView.find('/');
+
+        if (position != notFound && position + 1 < streamIdView.length())
+            streamId = streamIdView.substring(position + 1).toString();
+    }
+
+    return streamId;
+}
+
 static void initializeDebugCategory()
 {
     static std::once_flag onceFlag;
@@ -2173,6 +2191,47 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
         // request it being attended. Note that it's not possible to send a SELECT_STREAMS before the first
         // STREAMS_SELECTED message because at that point the pipeline is not compeletely constructed.
         playbin3SendSelectStreamsIfAppropriate();
+        break;
+    }
+    case GST_MESSAGE_STREAM_START: {
+        // Real track id configuration in MSE is managed by AppendPipeline.
+        if (isMediaSource())
+            break;
+
+        bool updated = false;
+        for (auto& track : m_audioTracks.values()) {
+            String streamId = trackIdFromPadStreamStartOrNull(*track->pad());
+
+            if (streamId.isNull() || streamId == track->id().string())
+                continue;
+
+            m_player->removeAudioTrack(*track);
+            auto oldStreamId = track->id();
+            track->setId(streamId);
+            m_player->addAudioTrack(*track);
+            updated = true;
+
+            GST_DEBUG_OBJECT(pipeline(), "Updated audio stream ID, old: %s, new: %s", oldStreamId.string().utf8().data(), track->id().string().utf8().data());
+        }
+
+        for (auto& track : m_videoTracks.values()) {
+            String streamId = trackIdFromPadStreamStartOrNull(*track->pad());
+
+            if (streamId.isNull() || streamId == track->id().string())
+                continue;
+
+            m_player->removeVideoTrack(*track);
+            auto oldStreamId = track->id();
+            track->setId(streamId);
+            m_player->addVideoTrack(*track);
+            updated = true;
+
+            GST_DEBUG_OBJECT(pipeline(), "Updated video stream ID, old: %s, new: %s", oldStreamId.string().utf8().data(), track->id().string().utf8().data());
+        }
+
+        if (updated)
+            m_player->mediaEngineUpdated();
+
         break;
     }
     default:

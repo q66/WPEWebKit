@@ -61,6 +61,8 @@ public:
     AtomString label() const override { return m_label; }
     AtomString language() const override { return m_language; }
 
+    void setId(AtomString id) { m_id = id; }
+
 private:
     AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer>, gint index, GRefPtr<GstPad>, AtomString streamID);
     AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer>, gint index, GRefPtr<GstStream>);

@@ -49,14 +49,15 @@ using namespace WebCore;
 
 static constexpr unsigned c_defaultRefreshRate = 60000;
 
-Ref<ThreadedCompositor> ThreadedCompositor::create(Client& client, ThreadedDisplayRefreshMonitor::Client& displayRefreshMonitorClient, PlatformDisplayID displayID, const IntSize& viewportSize, float scaleFactor, TextureMapper::PaintFlags paintFlags)
+Ref<ThreadedCompositor> ThreadedCompositor::create(Client& client, ThreadedDisplayRefreshMonitor::Client& displayRefreshMonitorClient, PlatformDisplayID displayID, const IntSize& viewportSize, float scaleFactor, TextureMapper::PaintFlags paintFlags, bool nonCompositedWebGLEnabled)
 {
-    return adoptRef(*new ThreadedCompositor(client, displayRefreshMonitorClient, displayID, viewportSize, scaleFactor, paintFlags));
+    return adoptRef(*new ThreadedCompositor(client, displayRefreshMonitorClient, displayID, viewportSize, scaleFactor, paintFlags, nonCompositedWebGLEnabled));
 }
 
-ThreadedCompositor::ThreadedCompositor(Client& client, ThreadedDisplayRefreshMonitor::Client& displayRefreshMonitorClient, PlatformDisplayID displayID, const IntSize& viewportSize, float scaleFactor, TextureMapper::PaintFlags paintFlags)
+ThreadedCompositor::ThreadedCompositor(Client& client, ThreadedDisplayRefreshMonitor::Client& displayRefreshMonitorClient, PlatformDisplayID displayID, const IntSize& viewportSize, float scaleFactor, TextureMapper::PaintFlags paintFlags, bool nonCompositedWebGLEnabled)
     : m_client(client)
     , m_paintFlags(paintFlags)
+    , m_nonCompositedWebGLEnabled(nonCompositedWebGLEnabled)
     , m_compositingRunLoop(makeUnique<CompositingRunLoop>([this] { renderLayerTree(); }))
     , m_displayRefreshMonitor(ThreadedDisplayRefreshMonitor::create(displayID, displayRefreshMonitorClient, WebCore::DisplayUpdate { 0, c_defaultRefreshRate / 1000 }))
 {
@@ -102,6 +103,11 @@ ThreadedCompositor::~ThreadedCompositor()
 void ThreadedCompositor::createGLContext()
 {
     ASSERT(m_compositingRunLoop->isCurrent());
+
+    // If nonCompositedWebGL is enabled there will be a gl context created for the window to render WebGL. We can't
+    // create another context for the same window.
+    if (m_nonCompositedWebGLEnabled)
+        return;
 
     // GLNativeWindowType depends on the EGL implementation: reinterpret_cast works
     // for pointers (only if they are 64-bit wide and not for other cases), and static_cast for
@@ -191,8 +197,33 @@ void ThreadedCompositor::forceRepaint()
     // in a way that doesn't starve out the underlying graphics buffers.
 }
 
+void ThreadedCompositor::renderNonCompositedWebGL()
+{
+    m_client.willRenderFrame();
+
+    // Retrieve the scene attributes in a thread-safe manner.
+    Vector<RefPtr<Nicosia::Scene>> states;
+
+    {
+        LockHolder locker(m_attributes.lock);
+        states = WTFMove(m_attributes.states);
+
+        // Set clientRenderNextFrame to true so frameComplete() causes a call to renderNextFrame().
+        m_attributes.clientRendersNextFrame = true;
+    }
+
+    m_scene->applyStateChangesAndNotifyVideoPosition(states);
+
+    m_client.didRenderFrame();
+}
+
 void ThreadedCompositor::renderLayerTree()
 {
+    if (m_nonCompositedWebGLEnabled) {
+        renderNonCompositedWebGL();
+        return;
+    }
+
     if (!m_scene || !m_scene->isActive())
         return;
 

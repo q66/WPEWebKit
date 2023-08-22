@@ -104,6 +104,7 @@ private:
     Nicosia::PaintingEngine& paintingEngine() override;
     RefPtr<Nicosia::ImageBackingStore> imageBackingStore(uint64_t, Function<RefPtr<Nicosia::Buffer>()>) override;
     void syncLayerState() override;
+    bool nonCompositedWebGLEnabled() const override { return m_nonCompositedWebGLEnabled; }
 
     // GraphicsLayerFactory
     Ref<WebCore::GraphicsLayer> createGraphicsLayer(WebCore::GraphicsLayer::Type, WebCore::GraphicsLayerClient&) override;
@@ -140,6 +141,7 @@ private:
     bool m_isFlushingLayerChanges { false };
     bool m_shouldSyncFrame { false };
     bool m_didInitializeRootCompositingLayer { false };
+    bool m_nonCompositedWebGLEnabled { false };
 
     WebCore::FloatRect m_visibleContentsRect;
 

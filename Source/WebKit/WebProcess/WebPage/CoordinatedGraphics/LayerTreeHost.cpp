@@ -42,6 +42,7 @@
 #include <WebCore/PageOverlayController.h>
 #include <WebCore/RenderLayerBacking.h>
 #include <WebCore/RenderView.h>
+#include <WebCore/Settings.h>
 #include <WebCore/ThreadedScrollingTree.h>
 
 #if USE(GLIB_EVENT_LOOP)
@@ -79,7 +80,8 @@ LayerTreeHost::LayerTreeHost(WebPage& webPage, WebCore::PlatformDisplayID displa
     if (m_surface->shouldPaintMirrored())
         paintFlags |= TextureMapper::PaintingMirrored;
 
-    m_compositor = ThreadedCompositor::create(*this, *this, m_displayID, scaledSize, scaleFactor, paintFlags);
+    bool nonCompositedWebGLEnabled = webPage.corePage()->settings().nonCompositedWebGLEnabled();
+    m_compositor = ThreadedCompositor::create(*this, *this, m_displayID, scaledSize, scaleFactor, paintFlags, nonCompositedWebGLEnabled);
     m_layerTreeContext.contextID = m_surface->surfaceID();
     m_surface->didCreateCompositingRunLoop(m_compositor->compositingRunLoop());
 

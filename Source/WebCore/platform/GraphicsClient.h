@@ -54,6 +54,8 @@ public:
 #endif
 
     virtual RefPtr<WebCore::ImageBuffer> sinkIntoImageBuffer(std::unique_ptr<WebCore::SerializedImageBuffer>) = 0;
+
+    virtual uint64_t nativeWindowID() const { return 0; }
 };
 
 } // namespace WebCore

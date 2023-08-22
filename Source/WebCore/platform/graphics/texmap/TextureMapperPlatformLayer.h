@@ -46,6 +46,8 @@ public:
 
     void setClient(TextureMapperPlatformLayer::Client* client) { m_client = client; }
 
+    virtual void notifyPositionToHolePunchClient(const FloatRect&, const TransformationMatrix&) { };
+
 protected:
     TextureMapperPlatformLayer::Client* client() { return m_client; }
 

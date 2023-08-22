@@ -840,4 +840,9 @@ void DrawingAreaCoordinatedGraphics::didDiscardBackingStore()
     m_dirtyRegion = m_webPage.bounds();
 }
 
+uint64_t DrawingAreaCoordinatedGraphics::nativeWindowID() const
+{
+    return m_layerTreeHost ? m_layerTreeHost->nativeWindowID() : 0;
+}
+
 } // namespace WebKit

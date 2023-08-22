@@ -652,6 +652,7 @@ public:
 
     WEBCORE_EXPORT virtual ~ChromeClient();
 
+    virtual uint64_t nativeWindowID() const { return 0; }
 protected:
     WEBCORE_EXPORT ChromeClient();
 };

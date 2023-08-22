@@ -233,6 +233,7 @@ public:
 
     WEBCORE_EXPORT void getToolTip(const HitTestResult&, String&, TextDirection&);
 
+    uint64_t nativeWindowID() const final;
 private:
     void notifyPopupOpeningObservers() const;
 

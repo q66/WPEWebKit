@@ -111,6 +111,8 @@ private:
     void display();
     void display(UpdateInfo&);
 
+    uint64_t nativeWindowID() const final;
+
     // Whether we're currently processing an UpdateGeometry message.
     bool m_inUpdateGeometry { false };
 

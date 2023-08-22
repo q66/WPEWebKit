@@ -57,7 +57,7 @@ public:
         virtual void displayDidRefresh(WebCore::PlatformDisplayID) = 0;
     };
 
-    static Ref<ThreadedCompositor> create(Client&, ThreadedDisplayRefreshMonitor::Client&, WebCore::PlatformDisplayID, const WebCore::IntSize&, float scaleFactor, WebCore::TextureMapper::PaintFlags);
+    static Ref<ThreadedCompositor> create(Client&, ThreadedDisplayRefreshMonitor::Client&, WebCore::PlatformDisplayID, const WebCore::IntSize&, float scaleFactor, WebCore::TextureMapper::PaintFlags, bool);
     virtual ~ThreadedCompositor();
 
     void setScrollPosition(const WebCore::IntPoint&, float scale);
@@ -82,12 +82,13 @@ public:
     RunLoop& compositingRunLoop() const { return m_compositingRunLoop->runLoop(); }
 
 private:
-    ThreadedCompositor(Client&, ThreadedDisplayRefreshMonitor::Client&, WebCore::PlatformDisplayID, const WebCore::IntSize&, float scaleFactor, WebCore::TextureMapper::PaintFlags);
+    ThreadedCompositor(Client&, ThreadedDisplayRefreshMonitor::Client&, WebCore::PlatformDisplayID, const WebCore::IntSize&, float scaleFactor, WebCore::TextureMapper::PaintFlags, bool);
 
     // CoordinatedGraphicsSceneClient
     void updateViewport() override;
 
     void renderLayerTree();
+    void renderNonCompositedWebGL();
     void sceneUpdateFinished();
 
     void createGLContext();
@@ -101,6 +102,7 @@ private:
     uintptr_t m_nativeSurfaceHandle;
     WebCore::TextureMapper::PaintFlags m_paintFlags { 0 };
     unsigned m_suspendedCount { 0 };
+    bool m_nonCompositedWebGLEnabled { false };
 
     std::unique_ptr<CompositingRunLoop> m_compositingRunLoop;
 

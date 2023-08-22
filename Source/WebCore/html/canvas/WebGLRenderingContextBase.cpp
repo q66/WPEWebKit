@@ -585,6 +585,11 @@ std::unique_ptr<WebGLRenderingContextBase> WebGLRenderingContextBase::create(Can
         attributes.powerPreference = GraphicsContextGLPowerPreference::LowPower;
     }
 
+    if (scriptExecutionContext->settingsValues().nonCompositedWebGLEnabled) {
+        attributes.renderTarget = GraphicsContextGLRenderTarget::HostWindow;
+        attributes.nativeWindowID = graphicsClient->nativeWindowID();
+    }
+
     if (canvasElement) {
         Document& document = canvasElement->document();
         RefPtr frame = document.frame();

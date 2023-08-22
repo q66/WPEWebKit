@@ -42,6 +42,11 @@ enum class GraphicsContextGLWebGLVersion : uint8_t {
     WebGL2
 };
 
+enum class GraphicsContextGLRenderTarget {
+    Offscreen,
+    HostWindow
+};
+
 #if PLATFORM(MAC) || PLATFORM(MACCATALYST)
 using PlatformGPUID = uint64_t;
 #endif
@@ -84,6 +89,11 @@ struct GraphicsContextGLAttributes {
             return PowerPreference::HighPerformance;
         return powerPreference;
     }
+
+    using RenderTarget = GraphicsContextGLRenderTarget;
+    RenderTarget renderTarget { RenderTarget::Offscreen };
+    using NativeWindowID = uint64_t;
+    NativeWindowID nativeWindowID { 0 };
 };
 
 }

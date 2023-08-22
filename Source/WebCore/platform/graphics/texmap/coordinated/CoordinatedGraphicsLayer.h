@@ -54,6 +54,7 @@ public:
     virtual Nicosia::PaintingEngine& paintingEngine() = 0;
     virtual RefPtr<Nicosia::ImageBackingStore> imageBackingStore(uint64_t, Function<RefPtr<Nicosia::Buffer>()>) = 0;
     virtual void syncLayerState() = 0;
+    virtual bool nonCompositedWebGLEnabled() const = 0;
 };
 
 class WEBCORE_EXPORT CoordinatedGraphicsLayer : public GraphicsLayer {
@@ -205,6 +206,8 @@ private:
     void requestPendingTileCreationTimerFired();
 
     bool filtersCanBeComposited(const FilterOperations&) const;
+
+    bool nonCompositedWebGLEnabled() const { return m_coordinator && m_coordinator->nonCompositedWebGLEnabled(); }
 
     Nicosia::PlatformLayer::LayerID m_id;
     GraphicsLayerTransform m_layerTransform;

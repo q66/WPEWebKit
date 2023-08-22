@@ -44,6 +44,7 @@
 #include <WebCore/NicosiaImageBackingTextureMapperImpl.h>
 #include <WebCore/NicosiaPaintingEngine.h>
 #include <WebCore/Page.h>
+#include <WebCore/Settings.h>
 #include <wtf/MemoryPressureHandler.h>
 #include <wtf/SetForScope.h>
 
@@ -58,6 +59,7 @@ CompositingCoordinator::CompositingCoordinator(WebPage& page, CompositingCoordin
     : m_page(page)
     , m_client(client)
     , m_paintingEngine(Nicosia::PaintingEngine::create())
+    , m_nonCompositedWebGLEnabled(m_page.corePage()->settings().nonCompositedWebGLEnabled())
 {
     m_nicosia.scene = Nicosia::Scene::create();
     m_nicosia.sceneIntegration = Nicosia::SceneIntegration::create(*m_nicosia.scene, *this);

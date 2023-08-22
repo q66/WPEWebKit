@@ -103,6 +103,8 @@ public:
     void adjustTransientZoom(double, WebCore::FloatPoint);
     void commitTransientZoom(double, WebCore::FloatPoint);
 #endif
+
+    uint64_t nativeWindowID() { return m_surface->window(); }
 private:
 #if USE(COORDINATED_GRAPHICS)
     void layerFlushTimerFired();

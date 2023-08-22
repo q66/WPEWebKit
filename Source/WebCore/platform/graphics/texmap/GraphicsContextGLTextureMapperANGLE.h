@@ -73,6 +73,7 @@ private:
     RefPtr<GraphicsLayerContentsDisplayDelegate> m_layerContentsDisplayDelegate;
 
     GCGLuint m_compositorTexture { 0 };
+    bool m_rendersToHostWindow { false };
 
 #if USE(NICOSIA)
     GCGLuint m_textureID { 0 };

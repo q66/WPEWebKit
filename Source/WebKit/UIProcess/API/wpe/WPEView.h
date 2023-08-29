@@ -115,11 +115,12 @@ public:
     static WebKit::WebPageProxy* platformWebPageProxyForGamepadInput();
 #endif
 
+    void setViewState(OptionSet<WebCore::ActivityState>);
+
 private:
     View(struct wpe_view_backend*, const API::PageConfiguration&);
 
     void setSize(const WebCore::IntSize&);
-    void setViewState(OptionSet<WebCore::ActivityState>);
     void handleKeyboardEvent(struct wpe_input_keyboard_event*);
 
     std::unique_ptr<API::ViewClient> m_client;

@@ -153,7 +153,8 @@ public:
     void setMuted(bool) final;
     MediaPlayer::NetworkState networkState() const final;
     MediaPlayer::ReadyState readyState() const final;
-    void setPageIsVisible(bool visible) final { m_visible = visible; }
+    void setPageIsVisible(bool visible) final;
+    void setPageIsSuspended(bool suspended) final;
     void setVisibleInViewport(bool isVisible) final;
     void setPresentationSize(const IntSize&) final;
     // Prefer MediaTime based methods over float based.
@@ -245,6 +246,31 @@ public:
     AbortableTaskQueue& sinkTaskQueue() { return m_sinkTaskQueue; }
 
     String codecForStreamId(const String& streamId);
+
+#if USE(GSTREAMER_HOLEPUNCH)
+    class GStreamerHolePunchHost : public ThreadSafeRefCounted<GStreamerHolePunchHost> {
+    public:
+        static Ref<GStreamerHolePunchHost> create(MediaPlayerPrivateGStreamer& playerPrivate)
+        {
+            return adoptRef(*new GStreamerHolePunchHost(playerPrivate));
+        }
+
+        void setVideoRectangle(const IntRect& rect)
+        {
+            if (m_playerPrivate)
+                m_playerPrivate->setVideoRectangle(rect);
+        }
+
+        void playerPrivateWillBeDestroyed() { m_playerPrivate = nullptr; }
+    private:
+        explicit GStreamerHolePunchHost(MediaPlayerPrivateGStreamer& playerPrivate)
+            : m_playerPrivate(&playerPrivate)
+        { }
+
+        MediaPlayerPrivateGStreamer* m_playerPrivate;
+    };
+    void setVideoRectangle(const IntRect& rect);
+#endif
 
 protected:
     enum MainThreadNotification {
@@ -547,6 +573,7 @@ private:
 
     bool m_isMuted { false };
     bool m_visible { false };
+    bool m_suspended { false };
 
     // playbin3 only:
     bool m_waitingForStreamsSelectedEvent { true };
@@ -619,6 +646,11 @@ private:
     bool isSeamlessSeekingEnabled() const { return m_seekFlags & (1 << GST_SEEK_FLAG_SEGMENT); }
 
     RefPtr<PlatformMediaResourceLoader> m_loader;
+
+#if USE(GSTREAMER_HOLEPUNCH)
+    RefPtr<GStreamerHolePunchHost> m_gstreamerHolePunchHost;
+    Lock m_holePunchLock;
+#endif
 };
 
 }

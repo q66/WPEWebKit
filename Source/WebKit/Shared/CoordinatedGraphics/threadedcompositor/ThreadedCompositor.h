@@ -77,6 +77,7 @@ public:
     void targetRefreshRateDidChange(unsigned);
 
     void suspend();
+    void suspendToTransparent();
     void resume();
 
     RunLoop& compositingRunLoop() const { return m_compositingRunLoop->runLoop(); }
@@ -124,6 +125,13 @@ private:
     } m_display;
 
     Ref<ThreadedDisplayRefreshMonitor> m_displayRefreshMonitor;
+
+    enum class SuspendToTransparentState {
+        None,
+        Requested,
+        WaitingForFrameComplete
+    };
+    SuspendToTransparentState m_suspendToTransparentState { SuspendToTransparentState::None };
 };
 
 } // namespace WebKit

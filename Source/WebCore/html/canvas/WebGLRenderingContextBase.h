@@ -1121,6 +1121,7 @@ private:
     WebGLStateTracker::Token m_trackerToken;
     Timer m_checkForContextLossHandlingTimer;
     bool m_isSuspended { false };
+    bool m_nonCompositedWebGLEnabled { false };
 
 #if ENABLE(WEBXR)
     bool m_isXRCompatible { false };

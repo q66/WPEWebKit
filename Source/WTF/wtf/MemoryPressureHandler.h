@@ -61,6 +61,11 @@ enum class MemoryUsagePolicy : uint8_t {
     Strict, // Time to start pinching pennies for real
 };
 
+enum class MemoryType : uint8_t {
+    Normal,
+    Video
+};
+
 enum class WebsamProcessState : uint8_t {
     Active,
     Inactive,
@@ -179,11 +184,12 @@ public:
     struct Configuration {
         WTF_MAKE_STRUCT_FAST_ALLOCATED;
         WTF_EXPORT_PRIVATE Configuration();
-        WTF_EXPORT_PRIVATE Configuration(size_t, double, double, std::optional<double>, Seconds);
+        WTF_EXPORT_PRIVATE Configuration(size_t, size_t, double, double, std::optional<double>, Seconds);
 
         template<class Encoder> void encode(Encoder& encoder) const
         {
             encoder << baseThreshold;
+            encoder << baseThresholdVideo;
             encoder << conservativeThresholdFraction;
             encoder << strictThresholdFraction;
             encoder << killThresholdFraction;
@@ -196,6 +202,11 @@ public:
             std::optional<size_t> baseThreshold;
             decoder >> baseThreshold;
             if (!baseThreshold)
+                return std::nullopt;
+
+            std::optional<size_t> baseThresholdVideo;
+            decoder >> baseThresholdVideo;
+            if (!baseThresholdVideo)
                 return std::nullopt;
 
             std::optional<double> conservativeThresholdFraction;
@@ -218,17 +229,18 @@ public:
             if (!pollInterval)
                 return std::nullopt;
 
-            return {{ *baseThreshold, *conservativeThresholdFraction, *strictThresholdFraction, *killThresholdFraction, *pollInterval }};
+            return {{ *baseThreshold, *baseThresholdVideo, *conservativeThresholdFraction, *strictThresholdFraction, *killThresholdFraction, *pollInterval }};
         }
 
         size_t baseThreshold;
+        size_t baseThresholdVideo;
         double conservativeThresholdFraction;
         double strictThresholdFraction;
         std::optional<double> killThresholdFraction;
         Seconds pollInterval;
     };
-    void setConfiguration(Configuration&& configuration) { m_configuration = WTFMove(configuration); }
-    void setConfiguration(const Configuration& configuration) { m_configuration = configuration; }
+    void setConfiguration(Configuration&&);
+    void setConfiguration(const Configuration&);
 
     WTF_EXPORT_PRIVATE void releaseMemory(Critical, Synchronous = Synchronous::No);
 
@@ -247,9 +259,9 @@ public:
     void setShouldLogMemoryMemoryPressureEvents(bool shouldLog) { m_shouldLogMemoryMemoryPressureEvents = shouldLog; }
 
 private:
-    std::optional<size_t> thresholdForMemoryKill();
-    size_t thresholdForPolicy(MemoryUsagePolicy);
-    MemoryUsagePolicy policyForFootprint(size_t);
+    std::optional<size_t> thresholdForMemoryKill(MemoryType);
+    size_t thresholdForPolicy(MemoryUsagePolicy, MemoryType);
+    MemoryUsagePolicy policyForFootprints(size_t, size_t);
 
     void memoryPressureStatusChanged();
 
@@ -265,8 +277,8 @@ private:
     void platformInitialize();
 
     void measurementTimerFired();
-    void shrinkOrDie(size_t killThreshold);
-    void setMemoryUsagePolicyBasedOnFootprint(size_t);
+    void shrinkOrDie(size_t killThreshold, size_t killThresholdVideo);
+    void setMemoryUsagePolicyBasedOnFootprints(size_t, size_t);
 
     unsigned m_pageCount { 0 };
 

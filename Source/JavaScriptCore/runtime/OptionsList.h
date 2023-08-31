@@ -594,7 +594,7 @@ bool hasCapacityToUseLargeGigacage();
     v(Bool, usePromiseTryMethod, false, Normal, "Expose the Promise.try() method.") \
     v(Bool, useRegExpEscape, false, Normal, "Expose RegExp.escape feature.") \
     v(Bool, useResizableArrayBuffer, true, Normal, "Expose ResizableArrayBuffer feature.") \
-    v(Bool, useSharedArrayBuffer, false, Normal, nullptr) \
+    v(Bool, useSharedArrayBuffer, true, Normal, nullptr) \
     v(Bool, useShadowRealm, false, Normal, "Expose the ShadowRealm object.") \
     v(Bool, useStringWellFormed, true, Normal, "Expose the String well-formed methods.") \
     v(Bool, useTemporal, false, Normal, "Expose the Temporal object.") \

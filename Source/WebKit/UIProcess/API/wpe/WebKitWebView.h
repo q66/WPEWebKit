@@ -571,6 +571,10 @@ webkit_web_view_hide                                 (WebKitWebView             
 WEBKIT_API void
 webkit_web_view_show                                 (WebKitWebView               *web_view);
 
+WEBKIT_API void
+webkit_web_view_send_memory_pressure_event           (WebKitWebView               *web_view,
+                                                      gboolean                    critical);
+
 WEBKIT_API gboolean
 webkit_web_view_get_is_web_process_responsive        (WebKitWebView             *web_view);
 

@@ -4619,6 +4619,13 @@ void webkit_web_view_show(WebKitWebView *webView)
     webView->priv->view->setViewState(viewStateFlags);
 }
 
+void webkit_web_view_send_memory_pressure_event(WebKitWebView *webView, gboolean critical)
+{
+    g_return_if_fail(WEBKIT_IS_WEB_VIEW(webView));
+
+    getPage(webView).sendMemoryPressureEvent(critical);
+}
+
 void webkitWebViewSetIsWebProcessResponsive(WebKitWebView* webView, bool isResponsive)
 {
     if (webView->priv->isWebProcessResponsive == isResponsive)

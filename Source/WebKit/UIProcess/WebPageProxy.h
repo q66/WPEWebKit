@@ -1689,6 +1689,8 @@ public:
     void revokeAccessToAssetServices();
 #endif
 
+    void sendMemoryPressureEvent(bool critical) const;
+
 private:
     WebPageProxy(PageClient&, WebProcessProxy&, Ref<API::PageConfiguration>&&);
     void platformInitialize();

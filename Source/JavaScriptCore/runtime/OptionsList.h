@@ -586,6 +586,7 @@ bool canUseWebAssemblyFastMemory();
     v(Bool, useWebAssemblyRelaxedSIMD, false, Normal, "Allow the relaxed simd instructions and types from the wasm relaxed simd spec.") \
     v(Bool, useWebAssemblyTailCalls, false, Normal, "Allow the new instructions from the wasm tail calls spec.") \
     v(Bool, useWasmIPInt, false, Normal, "Use the in-place interpereter for WASM instead of LLInt.") \
+    v(Bool, disableConsoleLog, false, Normal, "Disable printing of JS console logs.") \
 
 
 enum OptionEquivalence {

@@ -2670,6 +2670,12 @@ const NativeWebKeyboardEvent& WebPageProxy::firstQueuedKeyEvent() const
     return m_keyEventQueue.first();
 }
 
+void WebPageProxy::sendMemoryPressureEvent(bool critical) const
+{
+    for (auto* processPool : WebProcessPool::allProcessPools())
+        processPool->sendMemoryPressureEvent(critical);
+}
+
 void WebPageProxy::handleKeyboardEvent(const NativeWebKeyboardEvent& event)
 {
     if (!hasRunningProcess())

@@ -226,13 +226,27 @@ if (!window.InspectorFrontendHost) {
 
         canSave(saveMode)
         {
-            return false;
+            return true;
         }
 
         save(saveDatas, forceSaveAs)
         {
-            // FIXME: Create a Blob from the content, get an object URL, open it to trigger a download.
-            throw "unimplemented";
+            for (let saveData of saveDatas) {
+                var blob = WI.BlobUtilities.blobForContent(saveData.content, saveData.base64Encoded, "octet/stream");
+                var blobURL = window.URL.createObjectURL(blob);
+
+                var a = document.createElement("a");
+                a.href = blobURL;
+                a.style.display = "none";
+                // url looks like "web-inspector:///file.ext" use filename only
+                a.download = saveData.url.split('/').pop();
+                // Don't add this element to the DOM to skip custom click handler
+                // that will remove target file name ('download' attr)
+                a.click();
+                setTimeout(()=>{
+                    window.URL.revokeObjectURL(blobURL);
+                }, 0);
+            }
         }
 
         canLoad()

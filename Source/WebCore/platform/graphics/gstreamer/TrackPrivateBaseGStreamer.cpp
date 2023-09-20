@@ -43,13 +43,34 @@ GST_DEBUG_CATEGORY_EXTERN(webkit_media_player_debug);
 
 namespace WebCore {
 
-TrackPrivateBaseGStreamer::TrackPrivateBaseGStreamer(TrackPrivateBase* owner, gint index, GRefPtr<GstPad> pad)
+AtomString TrackPrivateBaseGStreamer::generateUniquePlaybin2StreamID(TrackType trackType, unsigned index)
+{
+    auto prefix = [trackType]() -> char {
+        switch (trackType) {
+        case TrackPrivateBaseGStreamer::TrackType::Audio:
+            return 'A';
+        case TrackPrivateBaseGStreamer::TrackType::Video:
+            return 'V';
+        case TrackPrivateBaseGStreamer::TrackType::Text:
+            return 'T';
+        default:
+            ASSERT_NOT_REACHED();
+            return 'U';
+        }
+    }();
+
+    return AtomString(makeString(prefix, index));
+}
+
+TrackPrivateBaseGStreamer::TrackPrivateBaseGStreamer(TrackType type, TrackPrivateBase* owner, gint index, GRefPtr<GstPad> pad)
     : m_notifier(MainThreadNotifier<MainThreadNotification>::create())
     , m_index(index)
     , m_pad(pad)
     , m_owner(owner)
 {
     ASSERT(m_pad);
+
+    m_id = AtomString(trackIdFromPadStreamStartOrUniqueID(type, index, m_pad));
 
     g_signal_connect_swapped(m_pad.get(), "notify::tags", G_CALLBACK(tagsChangedCallback), this);
 
@@ -64,6 +85,8 @@ TrackPrivateBaseGStreamer::TrackPrivateBaseGStreamer(TrackPrivateBase* owner, gi
     , m_owner(owner)
 {
     ASSERT(m_stream);
+
+    m_id = AtomString(gst_stream_get_stream_id(m_stream.get()));
 
     // We can't call notifyTrackOfTagsChanged() directly, because we need tagsChanged() to setup m_tags.
     tagsChanged();
@@ -171,6 +194,30 @@ void TrackPrivateBaseGStreamer::notifyTrackOfTagsChanged()
     m_language = language;
     if (client)
         client->languageChanged(m_language);
+}
+
+String TrackPrivateBaseGStreamer::trackIdFromPadStreamStartOrUniqueID(TrackType type, unsigned index, const GRefPtr<GstPad>& pad)
+{
+    String streamId = nullString();
+    if (!pad)
+        return generateUniquePlaybin2StreamID(type, index);
+
+    auto streamStart = adoptGRef(gst_pad_get_sticky_event(pad.get(), GST_EVENT_STREAM_START, 0));
+    if (!streamStart)
+        return generateUniquePlaybin2StreamID(type, index);
+
+    const gchar* streamIdAsCharacters;
+    gst_event_parse_stream_start(streamStart.get(), &streamIdAsCharacters);
+
+    if (!streamIdAsCharacters)
+        return generateUniquePlaybin2StreamID(type, index);
+
+    StringView streamIdView = StringView(streamIdAsCharacters);
+    size_t position = streamIdView.find('/');
+    if (position == notFound || position + 1 == streamIdView.length())
+        return generateUniquePlaybin2StreamID(type, index);
+
+    return streamIdView.substring(position + 1).toString();
 }
 
 } // namespace WebCore

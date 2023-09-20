@@ -51,6 +51,7 @@ public:
 
     void disconnect() override;
 
+    AtomString id() const override { return m_id; }
     AtomString label() const override { return m_label; }
     AtomString language() const override { return m_language; }
 

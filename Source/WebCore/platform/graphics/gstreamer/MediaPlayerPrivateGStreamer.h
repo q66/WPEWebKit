@@ -330,11 +330,8 @@ protected:
     static void setAudioStreamPropertiesCallback(MediaPlayerPrivateGStreamer*, GObject*);
 
     static void sourceSetupCallback(MediaPlayerPrivateGStreamer*, GstElement*);
-    static void videoChangedCallback(MediaPlayerPrivateGStreamer*);
     static void videoSinkCapsChangedCallback(MediaPlayerPrivateGStreamer*);
-    static void audioChangedCallback(MediaPlayerPrivateGStreamer*);
 #if ENABLE(VIDEO_TRACK)
-    static void textChangedCallback(MediaPlayerPrivateGStreamer*);
     static GstFlowReturn newTextSampleCallback(MediaPlayerPrivateGStreamer*);
 #endif
 
@@ -455,9 +452,9 @@ private:
     void processTableOfContents(GstMessage*);
     void processTableOfContentsEntry(GstTocEntry*);
 
-    void purgeInvalidAudioTracks(Vector<String> validTrackIds);
-    void purgeInvalidVideoTracks(Vector<String> validTrackIds);
-    void purgeInvalidTextTracks(Vector<String> validTrackIds);
+    bool purgeInvalidAudioTracks(Vector<String> validTrackIds);
+    bool purgeInvalidVideoTracks(Vector<String> validTrackIds);
+    bool purgeInvalidTextTracks(Vector<String> validTrackIds);
 #endif
     virtual bool doSeek(const MediaTime& position, float rate, GstSeekFlags seekType);
 

@@ -61,8 +61,10 @@ public:
         return m_stream.get();
     }
 
+    static String trackIdFromPadStreamStartOrUniqueID(TrackType, unsigned index, const GRefPtr<GstPad>&);
+
 protected:
-    TrackPrivateBaseGStreamer(TrackPrivateBase* owner, gint index, GRefPtr<GstPad>);
+    TrackPrivateBaseGStreamer(TrackType type, TrackPrivateBase* owner, gint index, GRefPtr<GstPad>);
     TrackPrivateBaseGStreamer(TrackPrivateBase* owner, gint index, GRefPtr<GstStream>);
 
     void notifyTrackOfTagsChanged();
@@ -73,10 +75,13 @@ protected:
         StreamChanged = 1 << 3
     };
 
+    WEBCORE_EXPORT static AtomString generateUniquePlaybin2StreamID(TrackType, unsigned index);
+
     Ref<MainThreadNotifier<MainThreadNotification>> m_notifier;
     gint m_index;
     AtomString m_label;
     AtomString m_language;
+    AtomString m_id;
     GRefPtr<GstPad> m_pad;
     GRefPtr<GstStream> m_stream;
 

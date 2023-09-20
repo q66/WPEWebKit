@@ -35,11 +35,9 @@
 namespace WebCore {
 
 VideoTrackPrivateGStreamer::VideoTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer> player, gint index, GRefPtr<GstPad> pad)
-    : TrackPrivateBaseGStreamer(this, index, pad)
+    : TrackPrivateBaseGStreamer(TrackType::Video, this, index, pad)
     , m_player(player)
 {
-    // FIXME: Get a real ID from the tkhd atom.
-    m_id = "V" + String::number(index);
 }
 
 VideoTrackPrivateGStreamer::VideoTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer> player, gint index, GRefPtr<GstStream> stream)
@@ -53,8 +51,6 @@ VideoTrackPrivateGStreamer::VideoTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivat
         GstStreamFlags streamFlags = gst_stream_get_stream_flags(stream.get());
         gst_stream_set_stream_flags(stream.get(), static_cast<GstStreamFlags>(streamFlags | GST_STREAM_FLAG_SELECT));
     }
-
-    m_id = gst_stream_get_stream_id(stream.get());
 }
 
 VideoTrackPrivate::Kind VideoTrackPrivateGStreamer::kind() const

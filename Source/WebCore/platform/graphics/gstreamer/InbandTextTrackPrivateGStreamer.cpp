@@ -41,7 +41,7 @@ namespace WebCore {
 
 InbandTextTrackPrivateGStreamer::InbandTextTrackPrivateGStreamer(gint index, GRefPtr<GstPad> pad)
     : InbandTextTrackPrivate(WebVTT)
-    , TrackPrivateBaseGStreamer(this, index, pad)
+    , TrackPrivateBaseGStreamer(TrackType::Text, this, index, pad)
 {
     m_eventProbe = gst_pad_add_probe(m_pad.get(), GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, [] (GstPad*, GstPadProbeInfo* info, gpointer userData) -> GstPadProbeReturn {
         auto* track = static_cast<InbandTextTrackPrivateGStreamer*>(userData);

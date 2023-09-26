@@ -57,6 +57,7 @@ public:
 
     // ImageBufferPipe::Source overrides.
     void handle(WebCore::ImageBuffer&) final;
+    void handle(WebCore::WebGLRenderingContextBase*) final;
 
     // ContentLayerTextureMapperImpl::Client overrides.
     void swapBuffersIfNeeded() override;

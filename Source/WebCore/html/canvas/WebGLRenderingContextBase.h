@@ -455,6 +455,7 @@ public:
     void reshape(int width, int height) override;
 
     void prepareForDisplayWithPaint() final;
+    void prepareForDisplayWithSwapBuffers() final;
     void paintRenderingResultsToCanvas() final;
     RefPtr<PixelBuffer> paintRenderingResultsToPixelBuffer(GraphicsContextGL::FlipY);
 #if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
@@ -737,6 +738,7 @@ protected:
 
     bool m_compositingResultsNeedUpdating { false };
     bool m_isDisplayingWithPaint { false };
+    bool m_isDisplayingWithSwapBuffers { false };
 
     // Enabled extension objects.
     // FIXME: Move some of these to WebGLRenderingContext, the ones not needed for WebGL2

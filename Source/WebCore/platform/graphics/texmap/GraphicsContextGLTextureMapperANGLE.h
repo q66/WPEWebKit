@@ -32,6 +32,7 @@
 #if USE(NICOSIA)
 namespace Nicosia {
 class GCGLANGLELayer;
+class NicosiaImageBufferPipeSource;
 }
 #endif
 
@@ -82,6 +83,7 @@ private:
     std::unique_ptr<Nicosia::GCGLANGLELayer> m_nicosiaLayer;
 
     friend class Nicosia::GCGLANGLELayer;
+    friend class Nicosia::NicosiaImageBufferPipeSource;
 #else
     std::unique_ptr<TextureMapperGCGLPlatformLayer> m_texmapLayer;
 

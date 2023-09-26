@@ -27,11 +27,13 @@
 #include "config.h"
 #include "NicosiaImageBufferPipe.h"
 
+#include "GraphicsContextGLTextureMapperANGLE.h"
 #include "ImageBuffer.h"
 #include "NativeImage.h"
 #include "NicosiaPlatformLayer.h"
 #include "TextureMapperPlatformLayerBuffer.h"
 #include "TextureMapperPlatformLayerProxyGL.h"
+#include "WebGLRenderingContextBase.h"
 
 #if USE(CAIRO)
 #include <cairo.h>
@@ -103,6 +105,34 @@ void NicosiaImageBufferPipeSource::handle(ImageBuffer& buffer)
     }
 
     m_imageBuffer = WTFMove(clone);
+}
+
+void NicosiaImageBufferPipeSource::handle(WebGLRenderingContextBase* renderingContext)
+{
+    if (!renderingContext)
+        return;
+
+    auto* angleContext = static_cast<GraphicsContextGLTextureMapperANGLE*>(renderingContext->graphicsContextGL());
+
+    if (!angleContext)
+        return;
+
+    renderingContext->prepareForDisplayWithSwapBuffers();
+
+    IntSize textureSize(angleContext->m_currentWidth, angleContext->m_currentHeight);
+
+    TextureMapperGL::Flags flags = TextureMapperGL::ShouldFlipTexture;
+    if (angleContext->contextAttributes().alpha)
+        flags |= TextureMapperGL::ShouldBlend;
+
+    {
+        auto& proxy = downcast<Nicosia::ContentLayerTextureMapperImpl>(m_nicosiaLayer->impl()).proxy();
+        Locker locker { proxy.lock() };
+        ASSERT(is<TextureMapperPlatformLayerProxyGL>(proxy));
+        downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(makeUnique<TextureMapperPlatformLayerBuffer>(angleContext->m_compositorTextureID, textureSize, flags, angleContext->m_internalColorFormat));
+    }
+
+    renderingContext->paintRenderingResultsToCanvas();
 }
 
 void NicosiaImageBufferPipeSource::swapBuffersIfNeeded()

@@ -505,12 +505,16 @@ void OffscreenCanvas::pushBufferToPlaceholder()
 
 void OffscreenCanvas::commitToPlaceholderCanvas()
 {
+    if (m_context && m_context->isWebGL() && m_placeholderData->bufferPipeSource) {
+        m_placeholderData->bufferPipeSource->handle(static_cast<WebGLRenderingContextBase*>(m_context.get()));
+        return;
+    }
+
     auto* imageBuffer = buffer();
     if (!imageBuffer)
         return;
 
-    // FIXME: Transfer texture over if we're using accelerated compositing
-    if (m_context && (m_context->isWebGL() || m_context->isAccelerated())) {
+    if (m_context && m_context->isAccelerated()) {
         m_context->prepareForDisplayWithPaint();
         m_context->paintRenderingResultsToCanvas();
     }

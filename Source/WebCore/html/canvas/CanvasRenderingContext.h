@@ -82,6 +82,7 @@ public:
     // Called before paintRenderingResultsToCanvas if paintRenderingResultsToCanvas is
     // used for compositing purposes.
     virtual void prepareForDisplayWithPaint() { }
+    virtual void prepareForDisplayWithSwapBuffers() { }
     virtual void paintRenderingResultsToCanvas() { }
     virtual RefPtr<GraphicsLayerContentsDisplayDelegate> layerContentsDisplayDelegate();
     virtual void setContentsToLayer(GraphicsLayer&);

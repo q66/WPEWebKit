@@ -34,6 +34,7 @@ namespace WebCore {
 
 class GraphicsLayer;
 class ImageBuffer;
+class WebGLRenderingContextBase;
 
 // Used to provide GraphicsLayer contents for an externally managed ImageBuffer; e.g. an ImageBuffer created and owned by a Worker thread
 class ImageBufferPipe : public RefCounted<ImageBufferPipe> {
@@ -43,6 +44,7 @@ public:
         virtual ~Source() = default;
 
         virtual void handle(ImageBuffer&) = 0;
+        virtual void handle(WebGLRenderingContextBase*) = 0;
     };
 
     static RefPtr<ImageBufferPipe> create();

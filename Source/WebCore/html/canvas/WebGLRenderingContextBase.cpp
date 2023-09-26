@@ -1054,10 +1054,22 @@ void WebGLRenderingContextBase::prepareForDisplayWithPaint()
     m_isDisplayingWithPaint = true;
 }
 
+void WebGLRenderingContextBase::prepareForDisplayWithSwapBuffers()
+{
+    m_isDisplayingWithSwapBuffers = true;
+    prepareForDisplay();
+}
+
 void WebGLRenderingContextBase::paintRenderingResultsToCanvas()
 {
     if (isContextLost())
         return;
+
+    if (m_isDisplayingWithSwapBuffers) {
+        m_isDisplayingWithSwapBuffers = false;
+        m_markedCanvasDirty = false;
+        return;
+    }
 
     if (m_isDisplayingWithPaint) {
         bool canvasContainsDisplayBuffer = !m_markedCanvasDirty;

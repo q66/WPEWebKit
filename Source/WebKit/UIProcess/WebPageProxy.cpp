@@ -14121,6 +14121,12 @@ void WebPageProxy::didAdjustVisibilityWithSelectors(Vector<String>&& selectors)
     m_uiClient->didAdjustVisibilityWithSelectors(*this, WTFMove(selectors));
 }
 
+void WebPageProxy::sendMemoryPressureEvent(bool critical) const
+{
+    for (auto& processPool : WebProcessPool::allProcessPools())
+        processPool->sendMemoryPressureEvent(critical);
+}
+
 } // namespace WebKit
 
 #undef WEBPAGEPROXY_RELEASE_LOG

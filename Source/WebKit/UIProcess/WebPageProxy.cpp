@@ -14186,6 +14186,12 @@ void WebPageProxy::frameNameChanged(IPC::Connection& connection, WebCore::FrameI
     });
 }
 
+void WebPageProxy::sendMemoryPressureEvent(bool critical) const
+{
+    for (auto& processPool : WebProcessPool::allProcessPools())
+        processPool->sendMemoryPressureEvent(critical);
+}
+
 } // namespace WebKit
 
 #undef WEBPAGEPROXY_RELEASE_LOG

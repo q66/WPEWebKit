@@ -2271,6 +2271,8 @@ public:
 
     WebPageProxyMessageReceiverRegistration& messageReceiverRegistration();
 
+    void sendMemoryPressureEvent(bool critical) const;
+
 private:
     WebPageProxy(PageClient&, WebProcessProxy&, Ref<API::PageConfiguration>&&);
     void platformInitialize();

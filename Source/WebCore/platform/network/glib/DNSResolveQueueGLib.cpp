@@ -98,7 +98,7 @@ void DNSResolveQueueGLib::resolve(const String& hostname, uint64_t identifier, D
     ASSERT(isMainThread());
 
     GRefPtr<GResolver> resolver = adoptGRef(g_resolver_get_default());
-    auto request = makeUnique<DNSResolveQueueGLib::Request>(identifier, WTFMove(completionHandler));
+    auto request = std::make_unique<DNSResolveQueueGLib::Request>(identifier, WTFMove(completionHandler));
     GRefPtr<GCancellable> cancellable = adoptGRef(g_cancellable_new());
     g_resolver_lookup_by_name_async(resolver.get(), hostname.utf8().data(), cancellable.get(), [](GObject* resolver, GAsyncResult* result, gpointer userData) {
         std::unique_ptr<DNSResolveQueueGLib::Request> request(static_cast<DNSResolveQueueGLib::Request*>(userData));

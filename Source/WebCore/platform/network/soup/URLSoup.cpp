@@ -26,7 +26,7 @@
 #include "config.h"
 #include "URLSoup.h"
 
-#include <wtf/URL.h>
+#include "URL.h"
 
 namespace WebCore {
 

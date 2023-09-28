@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <WebCore/BlobRegistryImpl.h>
 #include <pal/SessionID.h>
 #include <wtf/HashSet.h>
 #include <wtf/Ref.h>
@@ -54,12 +55,16 @@ public:
     void registerNetworkDataTask(NetworkDataTask& task) { m_dataTaskSet.add(&task); }
     void unregisterNetworkDataTask(NetworkDataTask& task) { m_dataTaskSet.remove(&task); }
 
+    WebCore::BlobRegistryImpl& blobRegistry() { return m_blobRegistry; }
+
 protected:
     NetworkSession(PAL::SessionID);
 
     PAL::SessionID m_sessionID;
 
     HashSet<NetworkDataTask*> m_dataTaskSet;
+
+    WebCore::BlobRegistryImpl m_blobRegistry;
 };
 
 } // namespace WebKit

@@ -29,6 +29,8 @@
 #include "MIMETypeRegistry.h"
 #include "SharedBuffer.h"
 #include "SoupVersioning.h"
+#include "URL.h"
+#include "URLSoup.h"
 #include "WebKitFormDataInputStream.h"
 #include <wtf/text/CString.h>
 #include <wtf/text/WTFString.h>
@@ -65,10 +67,6 @@ GRefPtr<SoupMessage> ResourceRequest::createSoupMessage(BlobRegistryImpl& blobRe
 
     updateSoupMessageHeaders(soup_message_get_request_headers(soupMessage.get()));
 
-    if (firstPartyForCookies().protocolIsInHTTPFamily()) {
-        if (auto firstParty = urlToSoupURI(firstPartyForCookies()))
-            soup_message_set_first_party(soupMessage.get(), firstParty.get());
-    }
 
 #if SOUP_CHECK_VERSION(2, 69, 90)
     if (!isSameSiteUnspecified()) {
@@ -99,7 +97,7 @@ void ResourceRequest::updateSoupMessageBody(SoupMessage* soupMessage, BlobRegist
     // Handle the common special case of one piece of form data, with no files.
     auto& elements = formData->elements();
     if (elements.size() == 1 && !formData->alwaysStream()) {
-        if (auto* vector = WTF::get_if<Vector<char>>(elements[0].data)) {
+        if (auto* vector = &(elements[0].m_data)) {
 #if USE(SOUP2)
             soup_message_body_append(soupMessage->request_body, SOUP_MEMORY_TEMPORARY, vector->data(), vector->size());
 #else
@@ -114,9 +112,7 @@ void ResourceRequest::updateSoupMessageBody(SoupMessage* soupMessage, BlobRegist
     auto resolvedFormData = formData->resolveBlobReferences();
     uint64_t length = 0;
     for (auto& element : resolvedFormData->elements()) {
-        length += element.lengthInBytes([&](auto& url) {
-            return blobRegistry.blobSize(url);
-        });
+        length += element.lengthInBytes();
     }
 
     if (!length)
@@ -179,7 +175,7 @@ GUniquePtr<SoupURI> ResourceRequest::createSoupURI() const
         return GUniquePtr<SoupURI>(soup_uri_new(urlString.utf8().data()));
     }
 
-    GUniquePtr<SoupURI> soupURI = m_url.createSoupURI();
+    GUniquePtr<SoupURI> soupURI = urlToSoupURI(m_url);
 
     // Versions of libsoup prior to 2.42 have a soup_uri_new that will convert empty passwords that are not
     // prefixed by a colon into null. Some parts of soup like the SoupAuthenticationManager will only be active

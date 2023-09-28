@@ -107,9 +107,9 @@ void WKCookieManagerStopObservingCookieChanges(WKCookieManagerRef cookieManager)
     toImpl(cookieManager)->stopObservingCookieChanges(PAL::SessionID::defaultSessionID());
 }
 
-void WKCookieManagerSetLimit(WKCookieManagerRef cookieManager, uint64_t limit)
+/*void WKCookieManagerSetLimit(WKCookieManagerRef cookieManager, uint64_t limit)
 {
 #if USE(SOUP)
     toImpl(cookieManager)->setLimit(limit);
 #endif
-}
+}*/

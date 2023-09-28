@@ -103,7 +103,7 @@ public:
 #if USE(SOUP)
     void setCookiePersistentStorage(const String& storagePath, uint32_t storageType);
     void getCookiePersistentStorage(String& storagePath, uint32_t& storageType) const;
-    void setLimit(uint64_t limit);
+    // void setLimit(uint64_t limit);
 #endif
 
     using API::Object::ref;

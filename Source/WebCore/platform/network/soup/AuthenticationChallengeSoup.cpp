@@ -30,6 +30,7 @@
 #include "AuthenticationChallenge.h"
 
 #include "ResourceError.h"
+#include "URLSoup.h"
 #include <libsoup/soup.h>
 
 namespace WebCore {
@@ -71,7 +72,7 @@ static ProtectionSpace protectionSpaceFromSoupAuthAndURL(SoupAuth* soupAuth, con
     auto port = authURL.port();
 #endif
 
-    return ProtectionSpace(host.toString(), static_cast<int>(port.valueOr(0)),
+    return ProtectionSpace(host.toString(), static_cast<int>(port.value_or(0)),
         protectionSpaceServerTypeFromURL(url, soup_auth_is_for_proxy(soupAuth)),
         String::fromUTF8(soup_auth_get_realm(soupAuth)), scheme);
 }

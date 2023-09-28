@@ -97,6 +97,7 @@ private:
     String m_defaultNetworkInterfaceIPV6;
     void networkChangeCheckTimerFired();
 #endif
+    PAL::SessionID m_sessionID;
 };
 
 } // namespace WebCore

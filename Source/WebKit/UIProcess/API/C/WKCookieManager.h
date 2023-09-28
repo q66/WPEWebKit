@@ -82,7 +82,7 @@ WK_EXPORT void WKCookieManagerGetCookies(WKCookieManagerRef cookieManager, void*
 WK_EXPORT void WKCookieManagerStartObservingCookieChanges(WKCookieManagerRef cookieManager);
 WK_EXPORT void WKCookieManagerStopObservingCookieChanges(WKCookieManagerRef cookieManager);
 
-WK_EXPORT void WKCookieManagerSetLimit(WKCookieManagerRef cookieManager, uint64_t limit);
+// WK_EXPORT void WKCookieManagerSetLimit(WKCookieManagerRef cookieManager, uint64_t limit);
 
 #ifdef __cplusplus
 }

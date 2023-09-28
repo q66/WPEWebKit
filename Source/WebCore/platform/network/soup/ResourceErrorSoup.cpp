@@ -29,9 +29,11 @@
 #if USE(SOUP)
 
 #include "LocalizedStrings.h"
+#include "URLSoup.h"
 #include <libsoup/soup.h>
 #include <wtf/glib/GUniquePtr.h>
 #include <wtf/text/CString.h>
+#include "URL.h"
 
 namespace WebCore {
 

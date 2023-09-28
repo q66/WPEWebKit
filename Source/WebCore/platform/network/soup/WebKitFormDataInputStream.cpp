@@ -27,7 +27,7 @@
 #include "WebKitFormDataInputStream.h"
 
 #include "BlobData.h"
-#include <wtf/FileSystem.h>
+#include "FileSystem.h"
 #include <wtf/glib/WTFGType.h>
 
 using namespace WebCore;
@@ -59,23 +59,9 @@ static bool webkitFormDataInputStreamCreateNextStream(WebKitFormDataInputStream*
         return true;
 
     const auto& element = elements[priv->nextIndex++];
-    switchOn(element.data,
-        [priv] (const Vector<char>& data) {
-            GRefPtr<GBytes> bytes = adoptGRef(g_bytes_new_static(data.data(), data.size()));
-            priv->currentStream = adoptGRef(g_memory_input_stream_new_from_bytes(bytes.get()));
-        }, [priv, cancellable] (const FormDataElement::EncodedFileData& fileData) {
-            if (fileData.fileModificationTimeMatchesExpectation()) {
-                GRefPtr<GFile> file = adoptGRef(g_file_new_for_path(FileSystem::fileSystemRepresentation(fileData.filename).data()));
-                priv->currentStream = adoptGRef(G_INPUT_STREAM(g_file_read(file.get(), cancellable, nullptr)));
-                if (G_IS_SEEKABLE(priv->currentStream.get()) && fileData.fileStart > 0)
-                    g_seekable_seek(G_SEEKABLE(priv->currentStream.get()), fileData.fileStart, G_SEEK_SET, cancellable, nullptr);
-                if (priv->currentStream)
-                    priv->currentStreamRangeLength = fileData.fileLength;
-            }
-        }, [] (const FormDataElement::EncodedBlobData&) {
-            ASSERT_NOT_REACHED();
-        }
-    );
+    GRefPtr<GBytes> bytes = adoptGRef(g_bytes_new_static(element.m_data.data(), element.m_data.size()));
+    priv->currentStream = adoptGRef(g_memory_input_stream_new_from_bytes(bytes.get()));
+    
 
     return !!priv->currentStream;
 }
@@ -136,13 +122,6 @@ GRefPtr<GInputStream> webkitFormDataInputStreamNew(Ref<FormData>&& formData)
 
     // GFileInputStream is not pollable, so the stream is only pollable if FormData doesn't contain EncodedFileData elements.
     stream->priv->canPoll = true;
-    for (const auto& element : stream->priv->formData->elements()) {
-        if (WTF::holds_alternative<FormDataElement::EncodedFileData>(element.data)) {
-            stream->priv->canPoll = false;
-            break;
-        }
-    }
-
     return adoptGRef(G_INPUT_STREAM((stream)));
 }
 

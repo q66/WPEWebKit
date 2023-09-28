@@ -26,6 +26,7 @@
 #include "WebKitWebContextPrivate.h"
 #include "WebKitWebView.h"
 #include "WebPageProxy.h"
+#include "WebURLSchemeHandler.h"
 #include <WebCore/ResourceError.h>
 #include <wtf/glib/GRefPtr.h>
 #include <wtf/glib/RunLoopSourcePriority.h>

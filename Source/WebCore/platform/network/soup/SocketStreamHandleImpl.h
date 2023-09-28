@@ -71,11 +71,12 @@ private:
     static void readReadyCallback(GInputStream*, GAsyncResult*, SocketStreamHandleImpl*);
     static gboolean writeReadyCallback(GPollableOutputStream*, SocketStreamHandleImpl*);
 
-    void connected(GRefPtr<GIOStream>&&);
+    void connected(GRefPtr<SoupWebsocketConnection>&&, GRefPtr<GIOStream>&&);
     void readBytes(gssize);
     void didFail(SocketStreamError&&);
     void writeReady();
 
+    GRefPtr<SoupWebsocketConnection> m_connection;
     GRefPtr<GIOStream> m_stream;
     GRefPtr<GInputStream> m_inputStream;
     GRefPtr<GPollableOutputStream> m_outputStream;

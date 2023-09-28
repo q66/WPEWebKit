@@ -35,6 +35,7 @@
 
 namespace WebCore {
 
+#if USE(SOUP2)
 URL::URL(SoupURI* soupURI)
 {
     if (!soupURI) {
@@ -65,6 +66,7 @@ GUniquePtr<SoupURI> URL::createSoupURI() const
 
     return GUniquePtr<SoupURI>(soup_uri_new(string().utf8().data()));
 }
+#endif
 
 bool URL::hostIsIPAddress(StringView host)
 {

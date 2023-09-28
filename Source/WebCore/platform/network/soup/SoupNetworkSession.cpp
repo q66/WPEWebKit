@@ -169,8 +169,9 @@ static HashMap<String, HostTLSCertificateSet, ASCIICaseInsensitiveHash>& clientC
 }
 
 SoupNetworkSession::SoupNetworkSession(PAL::SessionID sessionID, SoupCookieJar* cookieJar)
+    : m_sessionID(sessionID)
 #if ENABLE(NETWORK_CHANGE_DETECTION)
-    : m_networkChangeCheckTimer(RunLoop::main(), this, &SoupNetworkSession::networkChangeCheckTimerFired)
+    , m_networkChangeCheckTimer(RunLoop::main(), this, &SoupNetworkSession::networkChangeCheckTimerFired)
 #endif
 {
     // Values taken from http://www.browserscope.org/ following
@@ -318,7 +319,7 @@ void SoupNetworkSession::setProxies(const Vector<WebCore::Proxy>& proxies)
     const char* noProxy = getenv("no_proxy");
     if (httpProxy) {
         GProxyResolver* resolver = g_simple_proxy_resolver_new(httpProxy, (noProxy && strcmp(noProxy, "")) ? g_strsplit(noProxy, ",", -1) : nullptr);
-        g_object_set(m_soupSession.get(), SOUP_SESSION_PROXY_RESOLVER, resolver, nullptr);
+	soup_session_set_proxy_resolver(m_soupSession.get(), resolver);
     }
 #endif
     UNUSED_PARAM(proxies);

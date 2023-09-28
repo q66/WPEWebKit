@@ -42,6 +42,7 @@
 #include "SocketStreamHandleClient.h"
 #include "SoupNetworkSession.h"
 #include "URL.h"
+#include "URLSoup.h"
 #include <gio/gio.h>
 #include <glib.h>
 #include <wtf/Vector.h>
@@ -62,15 +63,6 @@ static gboolean acceptCertificateCallback(GTlsConnection*, GTlsCertificate* cert
     return !SoupNetworkSession::checkTLSErrors(handle->url(), certificate, errors);
 }
 
-#if SOUP_CHECK_VERSION(2, 61, 90)
-static void connectProgressCallback(SoupSession*, GSocketClientEvent event, GIOStream* connection, SocketStreamHandleImpl* handle)
-{
-    if (event != G_SOCKET_CLIENT_TLS_HANDSHAKING)
-        return;
-
-    g_signal_connect(connection, "accept-certificate", G_CALLBACK(acceptCertificateCallback), handle);
-}
-#else
 static void socketClientEventCallback(GSocketClient*, GSocketClientEvent event, GSocketConnectable*, GIOStream* connection, SocketStreamHandleImpl* handle)
 {
     if (event != G_SOCKET_CLIENT_TLS_HANDSHAKING)
@@ -78,34 +70,24 @@ static void socketClientEventCallback(GSocketClient*, GSocketClientEvent event, 
 
     g_signal_connect(connection, "accept-certificate", G_CALLBACK(acceptCertificateCallback), handle);
 }
-#endif
 
 Ref<SocketStreamHandleImpl> SocketStreamHandleImpl::create(const URL& url, SocketStreamHandleClient& client, PAL::SessionID sessionID, const String&, SourceApplicationAuditToken&&)
 {
     Ref<SocketStreamHandleImpl> socket = adoptRef(*new SocketStreamHandleImpl(url, client));
 
-#if SOUP_CHECK_VERSION(2, 61, 90)
     auto* networkStorageSession = NetworkStorageSession::storageSession(sessionID);
     if (!networkStorageSession)
         return socket;
 
-    auto uri = url.createSoupURI();
     Ref<SocketStreamHandle> protectedSocketStreamHandle = socket.copyRef();
-    soup_session_connect_async(networkStorageSession->getOrCreateSoupNetworkSession().soupSession(), uri.get(), socket->m_cancellable.get(),
-        url.protocolIs("wss") ? reinterpret_cast<SoupSessionConnectProgressCallback>(connectProgressCallback) : nullptr,
+    auto uri = urlToSoupURI(url);
+    auto soupMessage = adoptGRef(soup_message_new_from_uri(SOUP_METHOD_GET, uri.get()));
+    if (url.protocolIs("wss"))
+        g_signal_connect(soupMessage.get(), "accept-certificate", G_CALLBACK(acceptCertificateCallback), &protectedSocketStreamHandle.leakRef());
+    char* protocols[] = {"ws", "wss", nullptr};
+    soup_session_websocket_connect_async(networkStorageSession->getOrCreateSoupNetworkSession().soupSession(), soupMessage.get(), nullptr,
+        protocols, SOUP_MESSAGE_PRIORITY_NORMAL, socket->m_cancellable.get(),
         reinterpret_cast<GAsyncReadyCallback>(connectedCallback), &protectedSocketStreamHandle.leakRef());
-#else
-    UNUSED_PARAM(sessionID);
-    unsigned port = url.port() ? url.port().value() : (url.protocolIs("wss") ? 443 : 80);
-    GRefPtr<GSocketClient> socketClient = adoptGRef(g_socket_client_new());
-    if (url.protocolIs("wss")) {
-        g_socket_client_set_tls(socketClient.get(), TRUE);
-        g_signal_connect(socketClient.get(), "event", G_CALLBACK(socketClientEventCallback), socket.ptr());
-    }
-    Ref<SocketStreamHandle> protectedSocketStreamHandle = socket.copyRef();
-    g_socket_client_connect_to_host_async(socketClient.get(), url.host().utf8().data(), port, socket->m_cancellable.get(),
-        reinterpret_cast<GAsyncReadyCallback>(connectedCallback), &protectedSocketStreamHandle.leakRef());
-#endif
 
     return socket;
 }
@@ -114,7 +96,7 @@ Ref<SocketStreamHandleImpl> SocketStreamHandleImpl::create(GSocketConnection* so
 {
     Ref<SocketStreamHandleImpl> socket = adoptRef(*new SocketStreamHandleImpl(URL(), client));
     GRefPtr<GIOStream> stream = G_IO_STREAM(socketConnection);
-    socket->connected(WTFMove(stream));
+    socket->connected(GRefPtr<SoupWebsocketConnection>(), WTFMove(stream));
     return socket;
 }
 
@@ -130,8 +112,9 @@ SocketStreamHandleImpl::~SocketStreamHandleImpl()
     LOG(Network, "SocketStreamHandle %p delete", this);
 }
 
-void SocketStreamHandleImpl::connected(GRefPtr<GIOStream>&& stream)
+void SocketStreamHandleImpl::connected(GRefPtr<SoupWebsocketConnection>&& connection, GRefPtr<GIOStream>&& stream)
 {
+    m_connection = WTFMove(connection);
     m_stream = WTFMove(stream);
     m_outputStream = G_POLLABLE_OUTPUT_STREAM(g_io_stream_get_output_stream(m_stream.get()));
     m_inputStream = g_io_stream_get_input_stream(m_stream.get());
@@ -151,23 +134,21 @@ void SocketStreamHandleImpl::connectedCallback(GObject* object, GAsyncResult* re
 
     // Always finish the connection, even if this SocketStreamHandle was cancelled earlier.
     GUniqueOutPtr<GError> error;
-#if SOUP_CHECK_VERSION(2, 61, 90)
-    GRefPtr<GIOStream> stream = adoptGRef(soup_session_connect_finish(SOUP_SESSION(object), result, &error.outPtr()));
-#else
-    GRefPtr<GIOStream> stream = adoptGRef(G_IO_STREAM(g_socket_client_connect_to_host_finish(G_SOCKET_CLIENT(object), result, &error.outPtr())));
-#endif
+    GRefPtr<SoupWebsocketConnection> connection =  adoptGRef(soup_session_websocket_connect_finish(SOUP_SESSION(object), result, &error.outPtr()));
 
     // The SocketStreamHandle has been cancelled, so just close the connection, ignoring errors.
     if (g_cancellable_is_cancelled(handle->m_cancellable.get())) {
-        if (stream)
-            g_io_stream_close(stream.get(), nullptr, nullptr);
+        if (connection)
+            soup_websocket_connection_close(connection.get(), 0, nullptr);
         return;
     }
 
     if (error)
         handle->didFail(SocketStreamError(error->code, { }, error->message));
-    else
-        handle->connected(WTFMove(stream));
+    else {
+        GRefPtr<GIOStream> stream = adoptGRef(soup_websocket_connection_get_io_stream(connection.get()));
+        handle->connected(WTFMove(connection), WTFMove(stream));
+    }
 }
 
 void SocketStreamHandleImpl::readBytes(gssize bytesRead)

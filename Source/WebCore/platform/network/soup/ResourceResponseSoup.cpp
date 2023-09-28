@@ -36,7 +36,7 @@ namespace WebCore {
 
 ResourceResponse::ResourceResponse(SoupMessage* soupMessage, const CString& sniffedContentType)
 {
-    m_url = URL(soup_message_get_uri(soupMessage));
+    m_url = soupURIToURL(soup_message_get_uri(soupMessage));
 
     switch (soup_message_get_http_version(soupMessage)) {
     case SOUP_HTTP_1_0:

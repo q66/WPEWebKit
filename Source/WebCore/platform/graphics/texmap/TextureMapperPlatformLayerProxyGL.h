@@ -54,7 +54,7 @@ public:
     WEBCORE_EXPORT void swapBuffer() override;
 
     std::unique_ptr<TextureMapperPlatformLayerBuffer> getAvailableBuffer(const IntSize&, GLint internalFormat);
-    void pushNextBuffer(std::unique_ptr<TextureMapperPlatformLayerBuffer>&&);
+    void pushNextBuffer(std::unique_ptr<TextureMapperPlatformLayerBuffer>&&, bool = true);
 
     void dropCurrentBufferWhilePreservingTexture(bool shouldWait = false);
 

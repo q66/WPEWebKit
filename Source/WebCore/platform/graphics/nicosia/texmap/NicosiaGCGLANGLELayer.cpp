@@ -88,7 +88,7 @@ void GCGLANGLELayer::swapBuffersIfNeeded()
     auto fboSize = m_context.getInternalFramebufferSize();
     Locker locker { proxy.lock() };
     auto layerBuffer = makeUnique<TextureMapperPlatformLayerBuffer>(static_cast<GraphicsContextGLTextureMapperANGLE&>(m_context).m_compositorTextureID, fboSize, flags, colorFormat);
-    downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(WTFMove(layerBuffer));
+    downcast<TextureMapperPlatformLayerProxyGL>(proxy).pushNextBuffer(WTFMove(layerBuffer), false);
 }
 
 GCGLANGLELayer::GCGLANGLELayer(GraphicsContextGLTextureMapperANGLE& context)

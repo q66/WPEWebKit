@@ -756,8 +756,13 @@ void CoordinatedGraphicsLayer::updatePlatformLayer()
 
     m_shouldUpdatePlatformLayer = false;
 #if USE(COORDINATED_GRAPHICS) && USE(NICOSIA)
-    if (m_nicosia.contentLayer)
+    if (m_nicosia.contentLayer) {
+        // The call to swapBuffersIfNeeded will cause that WebGL and acc canvas push a new buffer to their proxy.
+        // They won't request a composition with this new buffer, so we need to ensure that the composition is
+        // triggered in case no other component does it.
         downcast<Nicosia::ContentLayerTextureMapperImpl>(m_nicosia.contentLayer->impl()).swapBuffersIfNeeded();
+        m_nicosia.performLayerSync |= true;
+    }
 #endif
 }
 

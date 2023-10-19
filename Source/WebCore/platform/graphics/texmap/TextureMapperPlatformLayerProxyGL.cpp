@@ -124,7 +124,7 @@ void TextureMapperPlatformLayerProxyGL::invalidate()
     updateFunction();
 }
 
-void TextureMapperPlatformLayerProxyGL::pushNextBuffer(std::unique_ptr<TextureMapperPlatformLayerBuffer>&& newBuffer)
+void TextureMapperPlatformLayerProxyGL::pushNextBuffer(std::unique_ptr<TextureMapperPlatformLayerBuffer>&& newBuffer, bool requestComposition)
 {
     ASSERT(m_lock.isHeld());
 #if USE(ANGLE)
@@ -136,7 +136,7 @@ void TextureMapperPlatformLayerProxyGL::pushNextBuffer(std::unique_ptr<TextureMa
     m_pendingBuffer = WTFMove(newBuffer);
     m_wasBufferDropped = false;
 
-    if (m_compositor)
+    if (m_compositor && requestComposition)
         m_compositor->onNewBufferAvailable();
 }
 

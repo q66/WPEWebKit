@@ -102,6 +102,8 @@ public:
     const TextureVariant& textureVariant() const { return m_variant; }
     IntSize size() const { return m_size; }
 
+    void addFenceSyncIfAvailable();
+
 protected:
     TextureVariant m_variant;
 
@@ -115,6 +117,7 @@ private:
     bool m_hasManagedTexture;
     std::unique_ptr<UnmanagedBufferDataHolder> m_unmanagedBufferDataHolder;
     std::unique_ptr<HolePunchClient> m_holePunchClient;
+    void* m_sync { nullptr };
 };
 
 } // namespace WebCore

@@ -27,6 +27,7 @@
 
 #if ENABLE(VIDEO) && USE(GSTREAMER) && ENABLE(VIDEO_TRACK)
 
+#include "AbortableTaskQueue.h"
 #include "AudioTrackPrivate.h"
 #include "GStreamerCommon.h"
 #include "TrackPrivateBaseGStreamer.h"
@@ -61,12 +62,17 @@ public:
     AtomString label() const override { return m_label; }
     AtomString language() const override { return m_language; }
 
+protected:
+    virtual void updateConfigurationFromTags(const GRefPtr<GstTagList>&) override;
+
 private:
     AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer>, gint index, GRefPtr<GstPad>, AtomString streamID);
     AudioTrackPrivateGStreamer(WeakPtr<MediaPlayerPrivateGStreamer>, gint index, GRefPtr<GstStream>);
+    void updateConfigurationFromCaps();
 
     AtomString m_id;
     WeakPtr<MediaPlayerPrivateGStreamer> m_player;
+    AbortableTaskQueue m_taskQueue;
 };
 
 } // namespace WebCore

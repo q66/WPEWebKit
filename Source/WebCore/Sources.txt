@@ -3607,6 +3607,7 @@ JSWebGLVertexArrayObjectOES.cpp
 #if ENABLE_VIDEO_TRACK
 
 JSAudioTrack.cpp
+JSAudioTrackConfiguration.cpp
 JSAudioTrackList.cpp
 JSDataCue.cpp
 JSTextTrack.cpp

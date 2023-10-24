@@ -158,6 +158,8 @@ void TrackPrivateBaseGStreamer::notifyTrackOfTagsChanged()
     if (!tags)
         return;
 
+    updateConfigurationFromTags(tags);
+
     if (getTag(tags.get(), GST_TAG_TITLE, m_label) && client)
         client->labelChanged(m_label);
 

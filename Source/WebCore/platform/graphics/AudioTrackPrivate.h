@@ -36,6 +36,7 @@ class AudioTrackPrivate;
 class AudioTrackPrivateClient : public TrackPrivateBaseClient {
 public:
     virtual void enabledChanged(bool) = 0;
+    virtual void updateConfigurationFromPrivate() = 0;
 };
 
 class AudioTrackPrivate : public TrackPrivateBase {
@@ -62,6 +63,42 @@ public:
     enum Kind { Alternative, Description, Main, MainDesc, Translation, Commentary, None };
     virtual Kind kind() const { return None; }
 
+    String codec() const { return m_codec; }
+    void setCodec(String&& codec) {
+        if (m_codec == codec)
+            return;
+        m_codec = WTFMove(codec);
+        if (m_client)
+            m_client->updateConfigurationFromPrivate();
+    }
+
+    uint32_t sampleRate() const { return m_sampleRate; }
+    void setSampleRate(uint32_t sampleRate) {
+        if (m_sampleRate == sampleRate)
+            return;
+        m_sampleRate = sampleRate;
+        if (m_client)
+            m_client->updateConfigurationFromPrivate();
+    }
+
+    uint32_t numberOfChannels() const { return m_numberOfChannels; }
+    void setNumberOfChannels(uint32_t numberOfChannels) {
+        if (m_numberOfChannels == numberOfChannels)
+            return;
+        m_numberOfChannels = numberOfChannels;
+        if (m_client)
+            m_client->updateConfigurationFromPrivate();
+    }
+
+    uint64_t bitrate() const { return m_bitrate; }
+    void setBitrate(uint64_t bitrate) {
+        if (m_bitrate == bitrate)
+            return;
+        m_bitrate = bitrate;
+        if (m_client)
+            m_client->updateConfigurationFromPrivate();
+    }
+
 #if !RELEASE_LOG_DISABLED
     const char* logClassName() const override { return "AudioTrackPrivate"; }
 #endif
@@ -72,6 +109,10 @@ protected:
 private:
     AudioTrackPrivateClient* m_client { nullptr };
     bool m_enabled { false };
+    String m_codec;
+    uint32_t m_sampleRate { 0 };
+    uint32_t m_numberOfChannels { 0 };
+    uint64_t m_bitrate { 0 };
 };
 
 } // namespace WebCore

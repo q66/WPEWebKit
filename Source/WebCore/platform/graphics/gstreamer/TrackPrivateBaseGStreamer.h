@@ -66,6 +66,8 @@ protected:
     TrackPrivateBaseGStreamer(TrackPrivateBase* owner, gint index, GRefPtr<GstStream>);
 
     void notifyTrackOfTagsChanged();
+protected:
+    virtual void updateConfigurationFromTags(const GRefPtr<GstTagList>&) { }
 
     enum MainThreadNotification {
         TagsChanged = 1 << 1,

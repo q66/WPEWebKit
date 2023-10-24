@@ -34,6 +34,7 @@
 
 #if ENABLE(VIDEO_TRACK)
 
+#include "AudioTrackConfiguration.h"
 #include "HTMLMediaElement.h"
 #include <wtf/NeverDestroyed.h>
 
@@ -80,12 +81,14 @@ AudioTrack::AudioTrack(AudioTrackClient& client, AudioTrackPrivate& trackPrivate
     , m_client(&client)
     , m_private(trackPrivate)
     , m_enabled(trackPrivate.enabled())
+    , m_configuration(AudioTrackConfiguration::create())
 {
     m_private->setClient(this);
 #if !RELEASE_LOG_DISABLED
     m_private->setLogger(logger(), logIdentifier());
 #endif
     updateKindFromPrivate();
+    updateConfigurationFromPrivate();
 }
 
 AudioTrack::~AudioTrack()
@@ -107,6 +110,7 @@ void AudioTrack::setPrivate(AudioTrackPrivate& trackPrivate)
 #endif
 
     updateKindFromPrivate();
+    updateConfigurationFromPrivate();
 }
 
 bool AudioTrack::isValidKind(const AtomString& value) const
@@ -194,6 +198,14 @@ void AudioTrack::updateKindFromPrivate()
         ASSERT_NOT_REACHED();
         break;
     }
+}
+
+void AudioTrack::updateConfigurationFromPrivate()
+{
+    m_configuration->setCodec(m_private->codec());
+    m_configuration->setSampleRate(m_private->sampleRate());
+    m_configuration->setNumberOfChannels(m_private->numberOfChannels());
+    m_configuration->setBitrate(m_private->bitrate());
 }
 
 void AudioTrack::setMediaElement(WeakPtr<HTMLMediaElement> element)

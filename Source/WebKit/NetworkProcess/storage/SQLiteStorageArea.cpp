@@ -326,6 +326,17 @@ HashMap<String, String> SQLiteStorageArea::allItems()
 
 Expected<void, StorageError> SQLiteStorageArea::setItem(IPC::Connection::UniqueID connection, StorageAreaImplIdentifier storageAreaImplID, String&& key, String&& value, const String& urlString)
 {
+    String oldValue;
+    if (auto valueOrError = getItem(key))
+        oldValue = valueOrError.value();
+    auto settingOutcome = setItem(key, value, true);
+    if (settingOutcome)
+        dispatchEvents(connection, storageAreaImplID, key, oldValue, value, urlString);
+    return settingOutcome;
+}
+
+Expected<void, StorageError> SQLiteStorageArea::setItem(const String& key, const String& value, bool handleDatabaseCorruption)
+{
     ASSERT(!isMainRunLoop());
 
     if (!prepareDatabase(ShouldCreateIfNotExists::Yes))
@@ -335,9 +346,6 @@ Expected<void, StorageError> SQLiteStorageArea::setItem(IPC::Connection::UniqueI
         return makeUnexpected(StorageError::QuotaExceeded);
 
     startTransactionIfNecessary();
-    String oldValue;
-    if (auto valueOrError = getItem(key))
-        oldValue = valueOrError.value();
 
     auto statement = cachedStatement(StatementType::SetItem);
     if (!statement || statement->bindText(1, key) || statement->bindBlob(2, value)) {
@@ -347,12 +355,13 @@ Expected<void, StorageError> SQLiteStorageArea::setItem(IPC::Connection::UniqueI
 
     const auto result = statement->step();
     if (result != SQLITE_DONE) {
-        RELEASE_LOG_ERROR(Storage, "SQLiteStorageArea::setItem failed on stepping statement (%d) - %s", m_database->lastError(), m_database->lastErrorMsg());
-        handleDatabaseCorruptionIfNeeded(result);
-        return makeUnexpected(StorageError::Database);
+        if (!handleDatabaseCorruption || !handleDatabaseCorruptionIfNeeded(result))
+            return makeUnexpected(StorageError::Database);
+        statement = cachedStatement(StatementType::SetItem);
+        if (!statement || statement->bindText(1, key) || statement->bindBlob(2, value) || statement->step() != SQLITE_DONE)
+            return makeUnexpected(StorageError::Database);
     }
 
-    dispatchEvents(connection, storageAreaImplID, key, oldValue, value, urlString);
     updateCacheIfNeeded(key, value);
 
     return { };
@@ -455,11 +464,16 @@ bool SQLiteStorageArea::handleDatabaseCorruptionIfNeeded(int databaseError)
     if (databaseError != SQLITE_CORRUPT && databaseError != SQLITE_NOTADB)
         return false;
 
-    m_database = nullptr;
-    m_cache = std::nullopt;
-    m_cacheSize = std::nullopt;
+    HashMap<String, Value> cache(WTFMove(*m_cache));
+    close();
     RELEASE_LOG(Storage, "SQLiteStorageArea::handleDatabaseCorruption deletes corrupted database file '%s'", m_path.utf8().data());
     WebCore::SQLiteFileSystem::deleteDatabaseFile(m_path);
+
+    // Reconstruct database based on cache.
+    for (auto& [key, value] : cache)
+        if (auto* valueString = std::get_if<String>(&value))
+            setItem(key, *valueString, false);
+
     return true;
 }
 

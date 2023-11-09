@@ -48,6 +48,7 @@ private:
     void clear() final;
     HashMap<String, String> allItems() final;
     Expected<void, StorageError> setItem(IPC::Connection::UniqueID, StorageAreaImplIdentifier, String&& key, String&& value, const String& urlString) final;
+    Expected<void, StorageError> setItem(const String& key, const String& value, bool handleDatabaseCorruption);
     Expected<void, StorageError> removeItem(IPC::Connection::UniqueID, StorageAreaImplIdentifier, const String& key, const String& urlString) final;
     Expected<void, StorageError> clear(IPC::Connection::UniqueID, StorageAreaImplIdentifier, const String& urlString) final;
 

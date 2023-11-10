@@ -2151,6 +2151,15 @@ if (USE_LIBWEBRTC)
     )
 endif ()
 
+if (ENABLE_OIPF_VK)
+    list(APPEND WebCore_IDL_FILES
+        page/VkConsts.idl
+    )
+    list(APPEND WebCore_SOURCES
+        page/VkConsts.cpp
+    )
+endif ()
+
 if (HAVE_OS_DARK_MODE_SUPPORT)
     set(FEATURE_DEFINES_WITH_SPACE_SEPARATOR "${FEATURE_DEFINES_WITH_SPACE_SEPARATOR} HAVE_OS_DARK_MODE_SUPPORT")
 endif ()

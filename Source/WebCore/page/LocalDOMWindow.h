@@ -95,6 +95,10 @@ class DeviceMotionController;
 class DeviceOrientationController;
 #endif
 
+#if ENABLE(OIPF_VK)
+class VkConsts;
+#endif
+
 struct IdleRequestOptions;
 struct ImageBitmapOptions;
 struct MessageWithMessagePorts;
@@ -411,6 +415,10 @@ public:
 
     CookieStore& cookieStore();
 
+#if ENABLE(OIPF_VK)
+    RefPtr<VkConsts> keyEvent();
+#endif
+
 private:
     explicit LocalDOMWindow(Document&);
 
@@ -460,6 +468,9 @@ private:
     mutable RefPtr<BarProp> m_toolbar;
     mutable RefPtr<Location> m_location;
     mutable RefPtr<VisualViewport> m_visualViewport;
+#if ENABLE(OIPF_VK)
+    mutable RefPtr<VkConsts> m_keyEvent;
+#endif
 
     String m_status;
     String m_defaultStatus;

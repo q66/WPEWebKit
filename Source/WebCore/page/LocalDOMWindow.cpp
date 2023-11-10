@@ -156,6 +156,10 @@
 #include "PointerLockController.h"
 #endif
 
+#if ENABLE(OIPF_VK)
+#include "VkConsts.h"
+#endif
+
 namespace WebCore {
 using namespace Inspector;
 
@@ -2815,5 +2819,17 @@ CookieStore& LocalDOMWindow::cookieStore()
         m_cookieStore = CookieStore::create(document());
     return *m_cookieStore;
 }
+
+#if ENABLE(OIPF_VK)
+RefPtr<VkConsts> LocalDOMWindow::keyEvent()
+{
+    if (!isCurrentlyDisplayedInFrame())
+        return nullptr;
+    if (!m_keyEvent)
+        m_keyEvent = VkConsts::create(*this);
+
+    return m_keyEvent;
+}
+#endif
 
 } // namespace WebCore

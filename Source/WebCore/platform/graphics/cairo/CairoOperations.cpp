@@ -958,8 +958,10 @@ void drawSurface(PlatformContextCairo& platformContext, cairo_surface_t* surface
 
     switch (imageInterpolationQuality) {
     case InterpolationQuality::DoNotInterpolate:
-    case InterpolationQuality::Low:
         cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_FAST);
+        break;
+    case InterpolationQuality::Low:
+        cairo_pattern_set_filter(pattern.get(), CAIRO_FILTER_BILINEAR);
         break;
     case InterpolationQuality::Medium:
     case InterpolationQuality::Default:

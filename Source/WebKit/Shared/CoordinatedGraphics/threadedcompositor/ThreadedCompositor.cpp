@@ -128,16 +128,18 @@ void ThreadedCompositor::invalidate()
     m_compositingRunLoop->stopUpdates();
     m_displayRefreshMonitor->invalidate();
     m_compositingRunLoop->performTaskSync([this, protectedThis = Ref { *this }] {
-        if (!m_context || !m_context->makeContextCurrent())
-            return;
+        if (m_context) {
+            if (!m_context->makeContextCurrent())
+                return;
 
-        // Update the scene at this point ensures the layers state are correctly propagated
-        // in the ThreadedCompositor and in the CompositingCoordinator.
-        updateSceneWithoutRendering();
+            // Update the scene at this point ensures the layers state are correctly propagated
+            // in the ThreadedCompositor and in the CompositingCoordinator.
+            updateSceneWithoutRendering();
 
-        m_scene->purgeGLResources();
-        m_client.willDestroyGLContext();
-        m_context = nullptr;
+            m_scene->purgeGLResources();
+            m_client.willDestroyGLContext();
+            m_context = nullptr;
+        }
         m_client.didDestroyGLContext();
         m_scene = nullptr;
 

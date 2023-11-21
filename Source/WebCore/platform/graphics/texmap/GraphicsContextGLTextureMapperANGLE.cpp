@@ -54,24 +54,23 @@
 namespace WebCore {
 
 static GCEGLSuface s_windowSurfaceObj { nullptr };
-
-static void terminateWindowSurface()
-{
-    // FIXME: could cause a crash if the compositor window is destroyed before this happens, as it's the
-    // problem in 2.38. I'll leave this as is for the moment and fix it together with 2.38.
-    auto display = PlatformDisplay::sharedDisplayForCompositing().angleEGLDisplay();
-    EGL_MakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-    EGL_DestroySurface(display, s_windowSurfaceObj);
-}
+static unsigned s_windowSurfaceRefCount { 0 };
 
 GraphicsContextGLANGLE::~GraphicsContextGLANGLE()
 {
     if (contextAttributes().renderTarget == GraphicsContextGLRenderTarget::HostWindow) {
-        // When rendering to the host window, destroy the context only, not the surface, as it's the static one.
-        if (m_contextObj) {
-            EGL_MakeCurrent(m_displayObj, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        EGL_MakeCurrent(m_displayObj, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+
+        if (m_contextObj)
             EGL_DestroyContext(m_displayObj, m_contextObj);
+
+        ASSERT(s_windowSurfaceObj && s_windowSurfaceRefCount > 0);
+        s_windowSurfaceRefCount--;
+        if (!s_windowSurfaceRefCount) {
+            EGL_DestroySurface(m_displayObj, s_windowSurfaceObj);
+            s_windowSurfaceObj = nullptr;
         }
+
         return;
     }
 
@@ -238,9 +237,9 @@ bool GraphicsContextGLTextureMapperANGLE::platformInitializeContext()
                 LOG(WebGL, "Failed to create a window surface");
                 return false;
             }
-            std::atexit(terminateWindowSurface);
         }
         m_surfaceObj = s_windowSurfaceObj;
+        s_windowSurfaceRefCount++;
     } else if (!isSurfacelessContextSupported) {
         static const int pbufferAttributes[] = { EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE };
         m_surfaceObj = EGL_CreatePbufferSurface(m_displayObj, m_configObj, pbufferAttributes);

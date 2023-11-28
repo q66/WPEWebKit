@@ -341,6 +341,7 @@ bool MediaPlayerPrivateGStreamerMSE::doSeek(const MediaTime& position, float rat
     }
 
     GST_DEBUG_OBJECT(pipeline(), "We can seek now");
+    m_seekTime = seekTime;
 
     MediaTime startTime = seekTime, endTime = MediaTime::invalidTime();
 

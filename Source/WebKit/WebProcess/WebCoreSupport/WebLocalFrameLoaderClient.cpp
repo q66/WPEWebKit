@@ -293,6 +293,11 @@ void WebLocalFrameLoaderClient::dispatchDidReceiveResponse(DocumentLoader*, Reso
 #if PLATFORM(GTK) || PLATFORM(WPE)
     webPage->send(Messages::WebPageProxy::DidReceiveResponseForResource(identifier, m_frame->frameID(), response));
 #endif
+
+    if (response.httpStatusCode() >= 400) {
+        String message = "Failed to load resource: the server responded with a status of " + String::number(response.httpStatusCode()) + " (" + response.httpStatusText() + ')';
+        LOG(Loading,"dispatchDidReceiveResponse->message:%s", message.utf8().data());
+    }
 }
 
 void WebLocalFrameLoaderClient::dispatchDidReceiveContentLength(DocumentLoader*, ResourceLoaderIdentifier identifier, int dataLength)
@@ -342,6 +347,8 @@ void WebLocalFrameLoaderClient::dispatchDidFailLoading(DocumentLoader*, Resource
 #endif
 
     webPage->removeResourceRequest(identifier);
+
+    LOG(Loading,"dispatchedDidFailLoading: isTimeout=%d, isCancellation=%d, isAccessControl=%d, errorCode=%d description:%s", error.isTimeout(), error.isCancellation(), error.isAccessControl(), error.errorCode(), error.localizedDescription().utf8().data());
 }
 
 bool WebLocalFrameLoaderClient::dispatchDidLoadResourceFromMemoryCache(DocumentLoader*, const ResourceRequest&, const ResourceResponse&, int /*length*/)
@@ -712,6 +719,8 @@ void WebLocalFrameLoaderClient::dispatchDidFailLoad(const ResourceError& error)
     // If we have a load listener, notify it.
     if (LoadListener* loadListener = m_frame->loadListener())
         loadListener->didFailLoad(m_frame.ptr(), error.isCancellation());
+
+    LOG(Loading,"dispatchDidFailLoad: isTimeout= %d, isCancellation= %d, isAccessControl= %d, errorCode= %d description: %s", error.isTimeout(), error.isCancellation(), error.isAccessControl(), error.errorCode(), error.localizedDescription().utf8().data());
 }
 
 void WebLocalFrameLoaderClient::dispatchDidFinishDocumentLoad()

@@ -149,11 +149,10 @@ void ImageBufferCairoGLSurfaceBackend::swapBuffersIfNeeded()
     auto backendSize = this->backendSize();
 
     GLContext* previousActiveContext = GLContext::current();
+    auto* context = PlatformDisplay::sharedDisplayForCompositing().sharingGLContext();
+    context->makeContextCurrent();
 
     if (!m_textures[1]) {
-        auto* context = PlatformDisplay::sharedDisplayForCompositing().sharingGLContext();
-        context->makeContextCurrent();
-
         glGenTextures(1, &m_textures[1]);
         glBindTexture(GL_TEXTURE_2D, m_textures[1]);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

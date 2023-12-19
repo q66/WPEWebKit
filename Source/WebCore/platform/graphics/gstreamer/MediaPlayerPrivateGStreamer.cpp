@@ -2044,8 +2044,8 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
         GST_DEBUG_OBJECT(m_pipeline.get(), "Received STREAMS_SELECTED message selecting the following streams:");
         unsigned numStreams = gst_message_streams_selected_get_size(message);
         for (unsigned i = 0; i < numStreams; i++) {
-            GstStream* stream = gst_message_streams_selected_get_stream(message, i);
-            GST_DEBUG_OBJECT(pipeline(), "#%u %s %s", i, gst_stream_type_get_name(gst_stream_get_stream_type(stream)), gst_stream_get_stream_id(stream));
+            auto stream = adoptGRef(gst_message_streams_selected_get_stream(message, i));
+            GST_DEBUG_OBJECT(pipeline(), "#%u %s %s", i, gst_stream_type_get_name(gst_stream_get_stream_type(stream.get())), gst_stream_get_stream_id(stream.get()));
         }
 #endif
         GST_DEBUG_OBJECT(m_pipeline.get(), "Setting m_waitingForStreamsSelectedEvent to false.");
@@ -3328,8 +3328,21 @@ static DMABufColorSpace colorSpaceForColorimetry(const GstVideoColorimetry* cinf
     return DMABufColorSpace::Invalid;
 }
 
+struct DMABufMemoryQuarkData {
+    DMABufReleaseFlag releaseFlag;
+};
+
+G_DEFINE_QUARK(DMABufMemoryQuarkData, dmabuf_memory);
+
 void MediaPlayerPrivateGStreamer::pushDMABufToCompositor()
 {
+    m_dmabufMemory.removeIf([](auto& memory) -> bool {
+        auto* quarkData = static_cast<DMABufMemoryQuarkData*>(gst_mini_object_get_qdata(GST_MINI_OBJECT_CAST(memory.get()), dmabuf_memory_quark()));
+        if (!quarkData)
+            return true;
+        return quarkData->releaseFlag.released();
+    });
+
     Locker sampleLocker { m_sampleMutex };
     if (!GST_IS_SAMPLE(m_sample.get()))
         return;
@@ -3376,24 +3389,30 @@ void MediaPlayerPrivateGStreamer::pushDMABufToCompositor()
     if (isDMABufMemory) {
         // In case of a hardware decoder that's yielding dmabuf memory, we can take the relevant data and
         // push it into the composition process.
+        auto memory = adoptGRef(gst_buffer_get_memory(buffer, 0));
 
         // Provide the DMABufObject with a relevant handle (memory address). When provided for the first time,
         // the lambda will be invoked and all dmabuf data is filled in.
         downcast<TextureMapperPlatformLayerProxyDMABuf>(proxy).pushDMABuf(
-            DMABufObject(reinterpret_cast<uintptr_t>(gst_buffer_peek_memory(buffer, 0))),
+            DMABufObject(reinterpret_cast<uintptr_t>(memory.get())),
             [&](auto&& object) {
                 object.format = DMABufFormat::create(fourccValue(GST_VIDEO_INFO_FORMAT(&videoInfo)));
                 object.colorSpace = colorSpaceForColorimetry(&GST_VIDEO_INFO_COLORIMETRY(&videoInfo));
                 object.width = GST_VIDEO_INFO_WIDTH(&videoInfo);
                 object.height = GST_VIDEO_INFO_HEIGHT(&videoInfo);
 
-                // TODO: release mechanism for a decoder-provided dmabuf is a bit tricky. The dmabuf object
-                // itself doesn't provide anything useful, but the decoder won't reuse the dmabuf until the
-                // relevant GstSample reference is dropped by the downstream pipeline. So for this to work,
-                // there's a need to somehow associate the GstSample reference with this release flag so that
-                // the reference is dropped once the release flag is signalled. There's ways to achieve that,
-                // but left for later.
-                object.releaseFlag = DMABufReleaseFlag { };
+                // The dmabuf object itself doesn't provide anything useful, but the decoder won't
+                // reuse the dmabuf until the relevant GstSample reference is dropped by the
+                // downstream pipeline. So for this to work, we associate the GstMemory reference
+                // count with this release flag so that the reference is dropped once the release
+                // flag is signalled.
+                object.releaseFlag = DMABufReleaseFlag(DMABufReleaseFlag::Initialize);
+
+                gst_mini_object_set_qdata(GST_MINI_OBJECT_CAST(memory.get()), dmabuf_memory_quark(),
+                    new DMABufMemoryQuarkData { object.releaseFlag.dup() },
+                    [](gpointer data) {
+                        delete static_cast<DMABufMemoryQuarkData*>(data);
+                    });
 
                 // No way (yet) to retrieve the modifier information. Until then, no modifiers are specified
                 // for this DMABufObject (via the modifierPresent and modifierValue member variables).
@@ -3420,6 +3439,11 @@ void MediaPlayerPrivateGStreamer::pushDMABufToCompositor()
                 }
                 return WTFMove(object);
             }, m_textureMapperFlags);
+
+        auto* quarkData = static_cast<DMABufMemoryQuarkData*>(gst_mini_object_get_qdata(GST_MINI_OBJECT_CAST(memory.get()), dmabuf_memory_quark()));
+        if (quarkData)
+            m_dmabufMemory.add(WTFMove(memory));
+
         return;
     }
 

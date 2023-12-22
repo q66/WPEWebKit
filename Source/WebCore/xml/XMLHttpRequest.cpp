@@ -98,7 +98,7 @@ static void logConsoleError(ScriptExecutionContext* context, const String& messa
     context->addConsoleMessage(MessageSource::JS, MessageLevel::Error, message);
 }
 
-static bool shouldDisableCacheForRequest(URL& url)
+static bool shouldDisableCacheForRequest(const URL& url)
 {
     static Vector<String> s_protocolsNotCached;
     static std::once_flag s_onceFlag;
@@ -651,7 +651,7 @@ ExceptionOr<void> XMLHttpRequest::createRequest()
     options.filteringPolicy = ResponseFilteringPolicy::Enable;
     options.contentEncodingSniffingPolicy = ContentEncodingSniffingPolicy::Disable;
 
-    if (responseType() == ResponseType::Arraybuffer || shouldDisableCacheForRequest(m_url)) {
+    if (responseType() == ResponseType::Arraybuffer || shouldDisableCacheForRequest(m_url.url())) {
         options.dataBufferingPolicy = DataBufferingPolicy::DoNotBufferData;
         options.cachingPolicy = CachingPolicy::DisallowCaching;
         request.setCachePolicy(ResourceRequestCachePolicy::DoNotUseAnyCache);

@@ -191,8 +191,6 @@ private:
     size_t maximumBufferSize() const;
     MediaTime findPreviousSyncSamplePresentationTime(const MediaTime&);
 
-    void monitorBufferingRate();
-
     void removeTimerFired();
     void removeCodedFrames(const MediaTime& start, const MediaTime& end);
     bool hasTooManySamples() const;
@@ -247,10 +245,6 @@ private:
 
     enum AppendStateType { WaitingForSegment, ParsingInitSegment, ParsingMediaSegment };
     AppendStateType m_appendState;
-
-    MonotonicTime m_timeOfBufferingMonitor;
-    double m_bufferedSinceLastMonitor { 0 };
-    double m_averageBufferRate { 0 };
 
     // Can only grow.
     size_t m_reportedExtraMemoryCost { 0 };

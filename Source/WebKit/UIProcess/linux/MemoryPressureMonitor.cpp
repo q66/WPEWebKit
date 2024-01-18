@@ -428,6 +428,7 @@ void CGroupMemoryController::setMemoryControllerPath(CString memoryControllerPat
         && !m_cgroupV2MemoryMaxFile
         && !m_cgroupV2MemoryHighFile
         && !m_cgroupMemoryMemswLimitInBytesFile
+        && !m_cgroupMemoryMemswUsageInBytesFile
         && !m_cgroupMemoryLimitInBytesFile
         && !m_cgroupMemoryUsageInBytesFile;
     if (shouldFallbackToEmptyPath) {
@@ -436,6 +437,7 @@ void CGroupMemoryController::setMemoryControllerPath(CString memoryControllerPat
         m_cgroupV2MemoryMaxFile = getCgroupFile("/", "", CString("memory.max"));
         m_cgroupV2MemoryHighFile = getCgroupFile("/", "", CString("memory.high"));
         m_cgroupMemoryMemswLimitInBytesFile = getCgroupFile("memory", "", CString("memory.memsw.limit_in_bytes"));
+        m_cgroupMemoryMemswUsageInBytesFile = getCgroupFile("memory", "", CString("memory.memsw.usage_in_bytes"));
         m_cgroupMemoryLimitInBytesFile = getCgroupFile("memory", "", CString("memory.limit_in_bytes"));
         m_cgroupMemoryUsageInBytesFile = getCgroupFile("memory", "", CString("memory.usage_in_bytes"));
     }

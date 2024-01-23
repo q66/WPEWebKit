@@ -2042,22 +2042,12 @@ bool RenderBox::repaintLayerRectsForImage(WrappedImagePtr image, const FillLayer
         if (layer->image() && image == layer->image()->data() && (layer->image()->isLoaded() || layer->image()->canRender(this, style().effectiveZoom()))) {
             // Now that we know this image is being used, compute the renderer and the rect if we haven't already.
             bool drawingRootBackground = drawingBackground && (isDocumentElementRenderer() || (isBody() && !document().documentElement()->renderer()->hasBackground()));
-            if (!layerRenderer) {
-                if (drawingRootBackground) {
-                    layerRenderer = &view();
-
-                    LayoutUnit rw = downcast<RenderView>(*layerRenderer).frameView().contentsWidth();
-                    LayoutUnit rh = downcast<RenderView>(*layerRenderer).frameView().contentsHeight();
-
-                    rendererRect = LayoutRect(-layerRenderer->marginLeft(),
-                        -layerRenderer->marginTop(),
-                        std::max(layerRenderer->width() + layerRenderer->horizontalMarginExtent() + layerRenderer->borderLeft() + layerRenderer->borderRight(), rw),
-                        std::max(layerRenderer->height() + layerRenderer->verticalMarginExtent() + layerRenderer->borderTop() + layerRenderer->borderBottom(), rh));
-                } else {
-                    layerRenderer = this;
-                    rendererRect = borderBoxRect();
-                }
-            }
+            // There are 2 cases here that need explanation when we're drawing the root background.
+            // * If this is the DocumentElementRenderer, then we use it as renderer.
+            // * If this is the body element, its background image can be painted by itself (if paintsOwnBackground is false) or
+            //   by the DocumentElementRenderer. In both cases setting this instance as the renderer does the appropriate job.
+            layerRenderer = this;
+            rendererRect = borderBoxRect();
             // FIXME: Figure out how to pass absolute position to calculateBackgroundImageGeometry (for pixel snapping)
             auto geometry = BackgroundPainter::calculateBackgroundImageGeometry(*layerRenderer, nullptr, *layer, LayoutPoint(), rendererRect);
             if (geometry.hasNonLocalGeometry) {

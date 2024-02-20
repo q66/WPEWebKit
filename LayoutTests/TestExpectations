@@ -5039,6 +5039,8 @@ webkit.org/b/227086 imported/w3c/web-platform-tests/webxr/xrWebGLLayer_construct
 imported/w3c/web-platform-tests/webxr/webxr_availability.http.sub.html [ DumpJSConsoleLogInStdErr ]
 
 
+http/tests/webshare/navigator-share-files-fail-access-control-checks-crash.html [ DumpJSConsoleLogInStdErr ]
+
 # "Opacity on an inline element should apply on float child".
 webkit.org/b/234690 imported/w3c/web-platform-tests/css/css-color/inline-opacity-float-child.html [ ImageOnlyFailure ]
 
@@ -5312,6 +5314,9 @@ webkit.org/b/239959 ipc/stream-sync-crash-no-timeout.html [ Skip ]
 
 # The test invokes random messages, potentially produces random results.
 ipc/start-message-testing.html [ Skip ]
+
+# Test is slow
+ipc/invalid-fullscreen-enum.html [ Pass Timeout ]
 
 # Test is crashing in Debug builds since import.
 webkit.org/b/234977 [ Debug ] imported/w3c/web-platform-tests/dom/events/focus-event-document-move.html [ Skip ]
@@ -6587,3 +6592,4 @@ imported/w3c/web-platform-tests/html/canvas/offscreen/fill-and-stroke-styles/2d.
 imported/w3c/web-platform-tests/html/canvas/offscreen/fill-and-stroke-styles/2d.pattern.transform.infinity.html [ Skip ]
 imported/w3c/web-platform-tests/html/canvas/offscreen/fill-and-stroke-styles/2d.pattern.transform.invalid.html [ Skip ]
 
+webkit.org/b/264830 [ Debug ] fast/rendering/render-list-marker-select.html [ Skip ]

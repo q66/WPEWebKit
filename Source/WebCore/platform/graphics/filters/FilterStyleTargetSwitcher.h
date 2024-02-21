@@ -39,7 +39,7 @@ private:
     bool needsRedrawSourceImage() const override { return true; }
 
     void beginDrawSourceImage(GraphicsContext& destinationContext) override;
-    void endDrawSourceImage(GraphicsContext& destinationContext) override;
+    void endDrawSourceImage(GraphicsContext& destinationContext, const DestinationColorSpace&) override;
 
     FilterStyleVector m_filterStyles;
 };

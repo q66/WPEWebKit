@@ -360,7 +360,7 @@ RefPtr<Image> ImageBuffer::filteredImage(Filter& filter, std::function<void(Grap
 
     if (filter.filterRenderingModes().contains(FilterRenderingMode::GraphicsContext)) {
         ASSERT(targetSwitcher);
-        targetSwitcher->endDrawSourceImage(context());
+        targetSwitcher->endDrawSourceImage(context(), colorSpace());
         return copyImage();
     }
 

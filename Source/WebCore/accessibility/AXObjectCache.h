@@ -198,7 +198,7 @@ public:
     void childrenChanged(Node*, Node* newChild = nullptr);
     void childrenChanged(RenderObject*, RenderObject* newChild = nullptr);
     void childrenChanged(AccessibilityObject*);
-    void onFocusChange(Node* oldFocusedNode, Node* newFocusedNode);
+    void onFocusChange(Element* oldElement, Element* newElement);
     void onPopoverTargetToggle(const HTMLFormControlElement&);
     void onScrollbarFrameRectChange(const Scrollbar&);
     void onSelectedChanged(Node*);
@@ -755,7 +755,7 @@ inline void AXObjectCache::onTitleChange(Document&) { }
 inline void AXObjectCache::onValidityChange(Element&) { }
 inline void AXObjectCache::onTextCompositionChange(Node&, CompositionState, bool) { }
 inline void AXObjectCache::valueChanged(Element*) { }
-inline void AXObjectCache::onFocusChange(Node*, Node*) { }
+inline void AXObjectCache::onFocusChange(Element*, Element*) { }
 inline void AXObjectCache::onPageActivityStateChange(OptionSet<ActivityState>) { }
 inline void AXObjectCache::onPopoverTargetToggle(const HTMLFormControlElement&) { }
 inline void AXObjectCache::onScrollbarFrameRectChange(const Scrollbar&) { }

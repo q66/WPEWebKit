@@ -4078,7 +4078,7 @@ private:
 bool MediaPlayerPrivateGStreamer::isHolePunchRenderingEnabled() const
 {
     auto& quirksManager = GStreamerQuirksManager::singleton();
-    return quirksManager.isEnabled() && quirksManager.supportsVideoHolePunchRendering();
+    return quirksManager.supportsVideoHolePunchRendering();
 }
 
 GstElement* MediaPlayerPrivateGStreamer::createHolePunchVideoSink()

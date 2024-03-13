@@ -171,6 +171,11 @@ MediaPlayerPrivateGStreamer::MediaPlayerPrivateGStreamer(MediaPlayer* player)
 #endif
     m_isPlayerShuttingDown.store(false);
 
+    if (player->isGStreamerHolePunchingEnabled()) {
+        m_quirksManagerForTesting = GStreamerQuirksManager::createForTesting();
+        m_quirksManagerForTesting->setHolePunchEnabledForTesting(true);
+    }
+
 #if USE(TEXTURE_MAPPER_GL) && USE(NICOSIA)
     m_nicosiaLayer = Nicosia::ContentLayer::create(Nicosia::ContentLayerTextureMapperImpl::createFactory(*this,
         [&]() -> Ref<TextureMapperPlatformLayerProxy> {
@@ -4057,13 +4062,18 @@ GstElement* MediaPlayerPrivateGStreamer::createVideoSinkGL()
 }
 #endif // USE(GSTREAMER_GL)
 
-static void setRectangleToVideoSink(GstElement* videoSink, const IntRect& rect)
+static void setRectangleToVideoSink(GStreamerQuirksManager* quirksManagerForTesting, GstElement* videoSink, const IntRect& rect)
 {
     // Here goes the platform-dependant code to set to the videoSink the size
     // and position of the video rendering window.
 
     if (!videoSink)
         return;
+
+    if (quirksManagerForTesting) {
+        quirksManagerForTesting->setHolePunchVideoRectangle(videoSink, rect);
+        return;
+    }
 
     auto& quirksManager = GStreamerQuirksManager::singleton();
     quirksManager.setHolePunchVideoRectangle(videoSink, rect);
@@ -4079,6 +4089,8 @@ private:
 
 bool MediaPlayerPrivateGStreamer::isHolePunchRenderingEnabled() const
 {
+    if (m_quirksManagerForTesting)
+        return m_quirksManagerForTesting->supportsVideoHolePunchRendering();
     auto& quirksManager = GStreamerQuirksManager::singleton();
     return quirksManager.supportsVideoHolePunchRendering();
 }
@@ -4092,8 +4104,11 @@ GstElement* MediaPlayerPrivateGStreamer::createHolePunchVideoSink()
     if (!player)
         return nullptr;
 
-    auto& quirksManager = GStreamerQuirksManager::singleton();
-    auto sink = quirksManager.createHolePunchVideoSink(m_isLegacyPlaybin, player.get());
+    GstElement* sink = nullptr;
+    if (m_quirksManagerForTesting)
+        sink = m_quirksManagerForTesting->createHolePunchVideoSink(m_isLegacyPlaybin, player.get());
+    else
+        sink = GStreamerQuirksManager::singleton().createHolePunchVideoSink(m_isLegacyPlaybin, player.get());
 
     // Configure sink before it allocates resources.
     if (sink)
@@ -4131,7 +4146,7 @@ void MediaPlayerPrivateGStreamer::setVideoRectangle(const IntRect& rect)
     Locker locker { m_holePunchLock };
 
     if (m_visible && !m_suspended)
-        setRectangleToVideoSink(m_videoSink.get(), rect);
+        setRectangleToVideoSink(m_quirksManagerForTesting.get(), m_videoSink.get(), rect);
 }
 
 bool MediaPlayerPrivateGStreamer::shouldIgnoreIntrinsicSize()
@@ -4537,7 +4552,7 @@ void MediaPlayerPrivateGStreamer::setPageIsVisible(bool visible)
         m_visible = visible;
 
         if (isHolePunchRenderingEnabled() && !m_visible)
-            setRectangleToVideoSink(m_videoSink.get(), IntRect());
+            setRectangleToVideoSink(m_quirksManagerForTesting.get(), m_videoSink.get(), IntRect());
     }
 }
 
@@ -4549,7 +4564,7 @@ void MediaPlayerPrivateGStreamer::setPageIsSuspended(bool suspended)
         m_suspended = suspended;
 
         if (isHolePunchRenderingEnabled() && m_suspended)
-            setRectangleToVideoSink(m_videoSink.get(), IntRect());
+            setRectangleToVideoSink(m_quirksManagerForTesting.get(), m_videoSink.get(), IntRect());
     }
 }
 

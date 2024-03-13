@@ -29,6 +29,7 @@
 #include "AbortableTaskQueue.h"
 #include "GStreamerCommon.h"
 #include "GStreamerEMEUtilities.h"
+#include "GStreamerQuirks.h"
 #include "ImageOrientation.h"
 #include "Logging.h"
 #include "MainThreadNotifier.h"
@@ -676,6 +677,8 @@ private:
 
     RefPtr<GStreamerHolePunchHost> m_gstreamerHolePunchHost;
     Lock m_holePunchLock;
+
+    RefPtr<GStreamerQuirksManager> m_quirksManagerForTesting;
 };
 
 }

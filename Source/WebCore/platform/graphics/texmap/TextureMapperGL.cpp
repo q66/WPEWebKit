@@ -687,15 +687,16 @@ void TextureMapperGL::drawSolidColor(const FloatRect& rect, const Transformation
         flags |= ShouldAntialias | (isBlendingAllowed ? ShouldBlend : 0);
     }
 
-    if (clipStack().isRoundedRectClipEnabled() && isBlendingAllowed) {
+    if (clipStack().isRoundedRectClipEnabled()) {
         options.add(TextureMapperShaderProgram::RoundedRectClip);
-        flags |= ShouldBlend;
+        if (isBlendingAllowed)
+            flags |= ShouldBlend;
     }
 
     Ref<TextureMapperShaderProgram> program = data().getShaderProgram(options);
     glUseProgram(program->programID());
 
-    if (options.contains(TextureMapperShaderProgram::RoundedRectClip))
+    if (clipStack().isRoundedRectClipEnabled())
         prepareRoundedRectClip(program.get(), clipStack().roundedRectComponents(), clipStack().roundedRectInverseTransformComponents(), clipStack().roundedRectCount());
 
     auto [r, g, b, a] = premultiplied(color.toColorTypeLossy<SRGBA<float>>()).resolved();

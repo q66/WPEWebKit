@@ -28,6 +28,7 @@
 #include "WorkerNavigator.h"
 
 #include "JSDOMPromiseDeferred.h"
+#include "Page.h"
 #include "WorkerBadgeProxy.h"
 #include "WorkerGlobalScope.h"
 #include "WorkerThread.h"

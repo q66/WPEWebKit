@@ -679,6 +679,10 @@ private:
     // Specific to MediaStream playback.
     MediaTime m_startTime;
     MediaTime m_pausedTime;
+
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    GRefPtr<GstElement> m_vidfilter;
+#endif
 };
 
 }

@@ -1947,6 +1947,13 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
         }
 #endif
 
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+        if (currentState == GST_STATE_NULL && newState == GST_STATE_READY && g_strstr_len(GST_MESSAGE_SRC_NAME(message), 13, "brcmvidfilter"))
+            m_vidfilter = GST_ELEMENT(GST_MESSAGE_SRC(message));
+        else if (currentState == GST_STATE_READY && newState == GST_STATE_NULL && g_strstr_len(GST_MESSAGE_SRC_NAME(message), 13, "brcmvidfilter"))
+            m_vidfilter = nullptr;
+#endif
+
         if (!messageSourceIsPlaybin || m_isDelayingLoad)
             break;
 
@@ -2148,6 +2155,25 @@ void MediaPlayerPrivateGStreamer::processBufferingStats(GstMessage* message)
 
     int percentage;
     gst_message_parse_buffering(message, &percentage);
+
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    // The Nexus playpump buffers a lot of data. Let's add it as if it had been buffered by the GstQueue2
+    // (only when using in-memory buffering), so we get more realistic percentages.
+    if (mode == GST_BUFFERING_STREAM && m_vidfilter) {
+        int originalBufferingPercentage = percentage;
+        GstObject *queue2 = GST_MESSAGE_SRC(message);
+        guint maxSizeBytes = 0;
+        // Current-level-bytes seems to be inacurate, so we compute its value from the buffering percentage
+        g_object_get(queue2, "max-size-bytes", &maxSizeBytes, nullptr);
+
+        guint playpumpBufferedBytes = 0;
+        g_object_get(GST_OBJECT(m_vidfilter.get()), "buffered-bytes", &playpumpBufferedBytes, nullptr);
+
+        size_t currentLevelBytes = (size_t)maxSizeBytes * (size_t)percentage / (size_t)100 + (size_t)playpumpBufferedBytes;
+        percentage = currentLevelBytes > maxSizeBytes ? 100 : (int)(currentLevelBytes * 100 / maxSizeBytes);
+        GST_DEBUG("[Buffering] Buffering: %d%% (corrected to %d%% with playpump content).", originalBufferingPercentage, percentage);
+    } else
+#endif
 
     updateBufferingStatus(mode, percentage);
 }

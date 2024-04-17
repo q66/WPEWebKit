@@ -93,7 +93,7 @@ static size_t memoryFootprintVideo()
     size_t size = 0;
     size_t footprint = 0;
     if (getline(&buffer, &size, file) != -1)
-        sscanf(buffer, "%u", &footprint);
+        sscanf(buffer, "%zu", &footprint);
 
     free(buffer);
     fclose(file);

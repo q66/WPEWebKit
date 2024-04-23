@@ -2277,9 +2277,10 @@ void MediaPlayerPrivateGStreamer::updateBufferingStatus(GstBufferingMode mode, d
 
     m_didDownloadFinish = percentage == 100;
 
-    if (!m_didDownloadFinish)
+    if (!m_didDownloadFinish) {
+        GST_INFO("!!! m_isBuffering true: !m_didDownloadFinish");
         m_isBuffering = true;
-    else
+    } else
         m_fillTimer.stop();
 
     m_bufferingPercentage = percentage;
@@ -2638,13 +2639,35 @@ void MediaPlayerPrivateGStreamer::updateStates()
                 GRefPtr<GstQuery> query = adoptGRef(gst_query_new_buffering(GST_FORMAT_PERCENT));
 
                 m_isBuffering = m_bufferingPercentage < 100;
-                if ((m_audioSink && gst_element_query(m_audioSink.get(), query.get()))
-                    || (m_videoSink && gst_element_query(m_videoSink.get(), query.get()))
-                    || gst_element_query(m_pipeline.get(), query.get())) {
+                GST_INFO("!!! m_isBuffering %s: m_bufferingPercentage = %d", boolForPrinting(m_isBuffering), m_bufferingPercentage);
+
+                // !!! This piece of code is really strange. If the queried buffering percentage is zero, then there's no buffering. If it's
+                // greater than zero (even 100%), then there's buffering. I think it should be "no buffering only when it's 100%".
+                bool queryOk = false;
+                const char* elementName = "<undefined>";
+                if (!queryOk) {
+                    queryOk = (m_audioSink && gst_element_query(m_audioSink.get(), query.get()));
+                    if (queryOk)
+                        elementName = "audiosink";
+                }
+                if (!queryOk) {
+                    queryOk = (m_videoSink && gst_element_query(m_videoSink.get(), query.get()));
+                    if (queryOk)
+                        elementName = "videosink";
+                }
+                if (!queryOk) {
+                    queryOk = gst_element_query(m_pipeline.get(), query.get());
+                    if (queryOk)
+                        elementName = "pipeline";
+                }
+                if (queryOk) {
                     gboolean isBuffering = m_isBuffering;
-                    gst_query_parse_buffering_percent(query.get(), &isBuffering, nullptr);
+                    gint percent = 0;
+                    gst_query_parse_buffering_percent(query.get(), &percent, nullptr);
+                    isBuffering = percent;
                     GST_TRACE_OBJECT(pipeline(), "[Buffering] m_isBuffering forcefully updated from %d to %d", m_isBuffering, isBuffering);
                     m_isBuffering = isBuffering;
+                    GST_INFO("!!! m_isBuffering %s: %s queried, percent = %d", boolForPrinting(m_isBuffering), elementName, percent);
                 }
 
                 if (!m_isBuffering) {

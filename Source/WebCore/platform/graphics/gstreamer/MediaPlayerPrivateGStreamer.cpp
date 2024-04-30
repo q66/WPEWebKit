@@ -2211,6 +2211,12 @@ static int correctBufferingPercentage(int originalBufferingPercentage, GRefPtr<G
         guint currentLevelBytes = 0;
         g_object_get(m_queue2.get(), "current-level-bytes", &currentLevelBytes, nullptr);
         correctedBufferingPercentage1 = currentLevelBytes > maxSizeBytes ? 100 : (int)(currentLevelBytes * 100 / maxSizeBytes);
+
+    }
+
+    if (!correctedBufferingPercentage1) {
+        GST_DEBUG("!!! current-level-bytes is 0, not correcting with Playpump nor with multiqueue, let's better wait a bit for that buffering level to rise");
+        return correctedBufferingPercentage1;
     }
 
     guint playpumpBufferedBytes = 0;

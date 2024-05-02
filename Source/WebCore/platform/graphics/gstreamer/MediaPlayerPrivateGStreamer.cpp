@@ -1320,6 +1320,7 @@ GstElement* MediaPlayerPrivateGStreamer::createAudioSink()
     if (!audioSink)
         GST_ERROR_OBJECT(m_pipeline.get(), "GStreamer's brcmaudiosink not found. Please check your gst-bcm installation");
     RELEASE_ASSERT(audioSink);
+
     return audioSink;
 #endif
 
@@ -1948,7 +1949,21 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
 #endif
 
 #if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
-        if (currentState == GST_STATE_NULL && newState == GST_STATE_READY && g_strstr_len(GST_MESSAGE_SRC_NAME(message), 13, "brcmvidfilter")) {
+        if (currentState == GST_STATE_NULL && newState == GST_STATE_READY && g_strstr_len(GST_MESSAGE_SRC_NAME(message), 13, "brcmaudfilter")) {
+            // !!!!!!!!
+            // Reduce PlayPump size as much as possible (10KB according to the docs) to rely on queue2 buffering instead
+            if (m_isLegacyPlaybin && gstObjectHasProperty(GST_ELEMENT(GST_MESSAGE_SRC(message)), "fifo-size")) {
+                GST_DEBUG("!!! Reducing brcmaudfilter buffering to the minimum");
+                g_object_set(G_OBJECT(GST_ELEMENT(GST_MESSAGE_SRC(message))), "fifo-size", (10 * 1024), nullptr);
+            }
+        } else if (currentState == GST_STATE_NULL && newState == GST_STATE_READY && g_strstr_len(GST_MESSAGE_SRC_NAME(message), 16, "brcmvideodecoder")) {
+            // !!!!!!!!
+            // Reduce PlayPump size as much as possible to rely on queue2 buffering instead
+            if (m_isLegacyPlaybin && gstObjectHasProperty(GST_ELEMENT(GST_MESSAGE_SRC(message)), "limit_buffering")) {
+                GST_DEBUG("!!! Reducing brcmvideodecoder buffering to the minimum");
+                g_object_set(G_OBJECT(GST_ELEMENT(GST_MESSAGE_SRC(message))), "limit_buffering", TRUE, nullptr);
+            }
+        } else if (currentState == GST_STATE_NULL && newState == GST_STATE_READY && g_strstr_len(GST_MESSAGE_SRC_NAME(message), 13, "brcmvidfilter")) {
             m_vidfilter = GST_ELEMENT(GST_MESSAGE_SRC(message));
             GST_INFO("!!! m_vidfilter = %p", m_vidfilter.get());
 
@@ -2275,6 +2290,8 @@ void MediaPlayerPrivateGStreamer::processBufferingStats(GstMessage* message)
     // (only when using in-memory buffering), so we get more realistic percentages.
     if (mode == GST_BUFFERING_STREAM && m_vidfilter) {
         m_bufferingPercentage = correctBufferingPercentage(percentage, m_queue2, m_vidfilter, m_multiqueue);
+        if (gstObjectHasProperty(m_queue2.get(), "max-size-bytes"))
+            g_object_set(m_queue2.get(), "max-size-bytes", 10 * 1024 * 1024, nullptr);
     } else
 #endif
     {
@@ -4299,6 +4316,7 @@ GstElement* MediaPlayerPrivateGStreamer::createHolePunchVideoSink()
     // Nexus boxes use autovideosink.
     GstElement* videoSink = makeGStreamerElement("brcmvideosink", nullptr);
     g_object_set(G_OBJECT(videoSink), "zorder", 0.0f, nullptr);
+
     return videoSink;
 #endif
 

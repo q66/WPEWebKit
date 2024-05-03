@@ -2680,7 +2680,8 @@ void MediaPlayerPrivateGStreamer::updateStates()
             if (m_isBuffering) {
                 GRefPtr<GstQuery> query = adoptGRef(gst_query_new_buffering(GST_FORMAT_PERCENT));
 
-                m_isBuffering = m_bufferingPercentage < 100;
+                // high-watermark = 0.1 --> 100 * high-watermark = 10.
+                m_isBuffering = m_bufferingPercentage < 10;
                 GST_INFO("!!! m_isBuffering %s: m_bufferingPercentage = %d", boolForPrinting(m_isBuffering), m_bufferingPercentage);
 
                 // !!! This piece of code is really strange. If the queried buffering percentage is zero, then there's no buffering. If it's
@@ -2719,7 +2720,8 @@ void MediaPlayerPrivateGStreamer::updateStates()
                     if (m_isLegacyPlaybin && g_strstr_len(elementName, 6, "queue2"))
                         percentage = correctBufferingPercentage(percentage, m_queue2, m_vidfilter, m_multiqueue);
 #endif
-                    isBuffering = m_isLegacyPlaybin ? percentage < 100 : percentage;
+                    // high-watermark = 0.1 --> 100 * high-watermark = 10.
+                    isBuffering = m_isLegacyPlaybin ? percentage < 10 : percentage;
                     GST_TRACE_OBJECT(pipeline(), "[Buffering] m_isBuffering forcefully updated from %d to %d", m_isBuffering, isBuffering);
                     m_isBuffering = isBuffering;
                     GST_INFO("!!! m_isBuffering %s: %s queried, percentage = %d", boolForPrinting(m_isBuffering), elementName, percentage);

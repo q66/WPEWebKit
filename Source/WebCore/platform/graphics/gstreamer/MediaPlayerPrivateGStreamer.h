@@ -523,8 +523,8 @@ private:
 
     virtual void updateDownloadBufferingFlag();
     void processBufferingStats(GstMessage*);
-    void updateBufferingStatus(GstBufferingMode, double percentage);
-    void updateMaxTimeLoaded(double percentage);
+    void updateBufferingStatus(GstBufferingMode, int percentage);
+    void updateMaxTimeLoaded(int percentage);
 
 #if USE(GSTREAMER_MPEGTS)
     void processMpegTsSection(GstMpegtsSection*);
@@ -684,6 +684,7 @@ private:
     GRefPtr<GstElement> m_vidfilter;
     GRefPtr<GstElement> m_multiqueue;
     GRefPtr<GstElement> m_queue2;
+    int m_bufferingPercentageLastValues[103] { };
 #endif
 };
 

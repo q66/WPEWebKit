@@ -3703,6 +3703,7 @@ void HTMLMediaElement::setPreload(const AtomString& preload)
 
 void HTMLMediaElement::play(DOMPromiseDeferred<void>&& promise)
 {
+    printf("!!!! %s\n", __PRETTY_FUNCTION__); fflush(stdout);
     ALWAYS_LOG(LOGIDENTIFIER);
 
     auto permitted = mediaSession().playbackStateChangePermitted(MediaPlaybackState::Playing);
@@ -3729,6 +3730,7 @@ void HTMLMediaElement::play(DOMPromiseDeferred<void>&& promise)
 
 void HTMLMediaElement::play()
 {
+    printf("!!!! %s\n", __PRETTY_FUNCTION__); fflush(stdout);
     ALWAYS_LOG(LOGIDENTIFIER);
 
     auto permitted = mediaSession().playbackStateChangePermitted(MediaPlaybackState::Playing);
@@ -3814,6 +3816,7 @@ void HTMLMediaElement::playInternal()
 
 void HTMLMediaElement::pause()
 {
+    printf("!!!! %s\n", __PRETTY_FUNCTION__); fflush(stdout);
     ALWAYS_LOG(LOGIDENTIFIER);
 
     m_temporarilyAllowingInlinePlaybackAfterFullscreen = false;

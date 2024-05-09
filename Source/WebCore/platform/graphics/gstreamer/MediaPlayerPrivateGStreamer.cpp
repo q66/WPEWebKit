@@ -425,6 +425,23 @@ bool MediaPlayerPrivateGStreamer::isPipelineSeeking() const
 
 void MediaPlayerPrivateGStreamer::play()
 {
+    static bool onlyAllowFirstPlay = false;
+    static std::once_flag once;
+    std::call_once(once, []() {
+        auto s = String::fromLatin1(std::getenv("DEBUG_ONLY_ALLOW_FIRST_PLAY"));
+        if (!s.isEmpty()) {
+            String value = s.stripWhiteSpace().convertToLowercaseWithoutLocale();
+            onlyAllowFirstPlay = (value == "1"_s || value == "t"_s || value == "true"_s);
+        }
+    });
+
+    static int timesCalled = 0;
+    timesCalled++;
+    if (onlyAllowFirstPlay && timesCalled > 1) {
+        GST_INFO("!!!! REFUSING to play() a %dth time FOR DEBUGGING PURPOSES !!!!", timesCalled);
+        return;
+    }
+
     if (isMediaStreamPlayer()) {
         m_pausedTime = MediaTime::invalidTime();
         if (m_startTime.isInvalid())
@@ -442,6 +459,7 @@ void MediaPlayerPrivateGStreamer::play()
         return;
     }
 
+    GST_INFO_OBJECT(pipeline(), "[Buffering] Restarting playback (play())");
     if (changePipelineState(GST_STATE_PLAYING) == ChangePipelineStateResult::Ok) {
         m_isEndReached = false;
         m_isDelayingLoad = false;
@@ -454,6 +472,23 @@ void MediaPlayerPrivateGStreamer::play()
 
 void MediaPlayerPrivateGStreamer::pause()
 {
+    static bool onlyAllowFirstPlay = false;
+    static std::once_flag once;
+    std::call_once(once, []() {
+        auto s = String::fromLatin1(std::getenv("DEBUG_ONLY_ALLOW_FIRST_PLAY"));
+        if (!s.isEmpty()) {
+            String value = s.stripWhiteSpace().convertToLowercaseWithoutLocale();
+            onlyAllowFirstPlay = (value == "1"_s || value == "t"_s || value == "true"_s);
+        }
+    });
+
+    static int timesCalled = 0;
+    timesCalled++;
+    if (onlyAllowFirstPlay && timesCalled > 0) {
+        GST_INFO("!!!! REFUSING to pause() a %dth time FOR DEBUGGING PURPOSES !!!!", timesCalled);
+        return;
+    }
+
     if (isMediaStreamPlayer())
         m_pausedTime = currentMediaTime();
 
@@ -531,6 +566,14 @@ bool MediaPlayerPrivateGStreamer::doSeek(const MediaTime& position, float rate, 
         GST_DEBUG_OBJECT(pipeline(), "Setting high-percent=0 on GstDownloadBuffer to force 100%% buffered reporting");
         g_object_set(m_downloadBuffer.get(), "high-percent", 0, nullptr);
     }
+
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    if (m_isLegacyPlaybin && m_queue2) {
+        GST_DEBUG("!!! Resetting m_bufferingPercentageLastValues because of seek");
+        for (unsigned char i = 0; i < 10; i++)
+            m_bufferingPercentageLastValues[i] = 0;
+    }
+#endif
 
     GST_DEBUG_OBJECT(pipeline(), "[Seek] Performing actual seek to %" GST_TIME_FORMAT " (endTime: %" GST_TIME_FORMAT ") at rate %f", GST_TIME_ARGS(toGstClockTime(startTime)), GST_TIME_ARGS(toGstClockTime(endTime)), rate);
     return gst_element_seek(m_pipeline.get(), rate, GST_FORMAT_TIME, seekFlags,
@@ -1252,6 +1295,148 @@ void MediaPlayerPrivateGStreamer::commitLoad()
     updateStates();
 }
 
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+static int movingAverage(int m_bufferingPercentageLastValues[10], int newValue)
+{
+    int sum = 0;
+    for (unsigned char i = 1; i < 10; i++) {
+        m_bufferingPercentageLastValues[i-1] = m_bufferingPercentageLastValues[i];
+        sum += m_bufferingPercentageLastValues[i-1];
+    }
+    m_bufferingPercentageLastValues[10-1] = newValue;
+    sum += newValue;
+    int result = sum / 10;
+    GST_DEBUG("!!! movingAverage: %d", result);
+    return result;
+}
+
+static int correctBufferingPercentage(int originalBufferingPercentage, GRefPtr<GstElement>& m_queue2, GRefPtr<GstElement>& m_vidfilter,
+    GRefPtr<GstElement>& m_multiqueue, int m_bufferingPercentageLastValues[3])
+{
+    // The Nexus playpump buffers a lot of data. Let's add it as if it had been buffered by the GstQueue2
+    // (only when using in-memory buffering), so we get more realistic percentages.
+    int correctedBufferingPercentage1 = originalBufferingPercentage;
+    int correctedBufferingPercentage2 = originalBufferingPercentage;
+    guint maxSizeBytes = 0;
+
+    // We don't trust the buffering percentage when it's 0, better rely on current-level-bytes and compute a new buffer level accordingly.
+    g_object_get(m_queue2.get(), "max-size-bytes", &maxSizeBytes, nullptr);
+    if (!originalBufferingPercentage) {
+        guint currentLevelBytes = 0;
+        g_object_get(m_queue2.get(), "current-level-bytes", &currentLevelBytes, nullptr);
+        correctedBufferingPercentage1 = currentLevelBytes > maxSizeBytes ? 100 : (int)(currentLevelBytes * 100 / maxSizeBytes);
+
+    }
+
+/*
+!!!!!!!!!!!!!!!!
+    if (!correctedBufferingPercentage1) {
+        GST_DEBUG("!!! current-level-bytes is 0, not correcting with Playpump nor with multiqueue, let's better wait a bit for that buffering level to rise");
+        return movingAverage(m_bufferingPercentageLastValues, correctedBufferingPercentage1);
+    }
+*/
+    guint playpumpBufferedBytes = 0;
+    g_object_get(GST_OBJECT(m_vidfilter.get()), "buffered-bytes", &playpumpBufferedBytes, nullptr);
+
+    guint multiqueueBufferedBytes = 0;
+    if (m_multiqueue) {
+        GUniqueOutPtr<GstStructure> stats;
+        g_object_get(m_multiqueue.get(), "stats", &stats.outPtr(), nullptr);
+        const GValue* queues = gst_structure_get_value(stats.get(), "queues");
+        guint size = gst_value_array_get_size(queues);
+        for (guint i = 0; i < size; i++) {
+            guint bytes = 0;
+            if (gst_structure_get_uint(gst_value_get_structure(gst_value_array_get_value(queues, i)), "bytes", &bytes))
+                multiqueueBufferedBytes += bytes;
+        }
+    }
+
+    // Current-level-bytes seems to be inacurate, so we compute its value from the buffering percentage.
+    size_t currentLevelBytes = (size_t)maxSizeBytes * (size_t)originalBufferingPercentage / (size_t)100
+        + (size_t)playpumpBufferedBytes + (size_t)multiqueueBufferedBytes;
+    correctedBufferingPercentage2 = currentLevelBytes > maxSizeBytes ? 100 : (int)(currentLevelBytes * 100 / maxSizeBytes);
+
+    const char* extraElements = m_multiqueue ? "playpump and multiqueue" : "playpump";
+    if (!originalBufferingPercentage) {
+#ifndef GST_DISABLE_GST_DEBUG
+        GST_DEBUG("[Buffering] Buffering: mode: GST_BUFFERING_STREAM, status: %d%% (corrected to %d%% with current-level-bytes and to %d%% with %s content).",
+            originalBufferingPercentage, correctedBufferingPercentage1, correctedBufferingPercentage2, extraElements);
+#endif
+    } else {
+#ifndef GST_DISABLE_GST_DEBUG
+        GST_DEBUG("[Buffering] Buffering: mode: GST_BUFFERING_STREAM, status: %d%% (corrected to %d%% with %s content).",
+            originalBufferingPercentage, correctedBufferingPercentage2, extraElements);
+#endif
+    }
+    if (correctedBufferingPercentage2 >= 100) {
+        // Reset moving average to 100
+        for (unsigned char i = 0; i < 10; i++)
+            m_bufferingPercentageLastValues[i] = 100;
+    }
+    int averagedBufferingPercentage = movingAverage(m_bufferingPercentageLastValues, correctedBufferingPercentage2);
+    return averagedBufferingPercentage;
+}
+#endif
+
+static bool queryBufferingPercentage(GstBufferingMode* mode, int m_bufferingPercentage, bool m_isLegacyPlaybin, bool &m_isBuffering, GRefPtr<GstElement>&m_pipeline
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    , GRefPtr<GstElement>&m_queue2, GRefPtr<GstElement>&m_vidfilter, GRefPtr<GstElement>&m_audioSink, GRefPtr<GstElement>&m_videoSink,
+    GRefPtr<GstElement>&m_multiqueue, int m_bufferingPercentageLastValues[10]
+#endif
+    )
+{
+    GRefPtr<GstQuery> query = adoptGRef(gst_query_new_buffering(GST_FORMAT_PERCENT));
+
+    m_isBuffering = m_bufferingPercentage < 80;
+    GST_INFO("!!! m_isBuffering %s: m_bufferingPercentage = %d", boolForPrinting(m_isBuffering), m_bufferingPercentage);
+
+    // !!! This piece of code is really strange. If the queried buffering percentage is zero, then there's no buffering. If it's
+    // greater than zero (even 100%), then there's buffering. I think it should be "no buffering only when it's 100%".
+    bool queryOk = false;
+    const char* elementName = "<undefined>";
+
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    if (!queryOk) {
+        queryOk = (m_queue2 && gst_element_query(m_queue2.get(), query.get()));
+        if (queryOk)
+            elementName = "queue2";
+    }
+#endif
+
+    if (!queryOk) {
+        queryOk = (m_audioSink && gst_element_query(m_audioSink.get(), query.get()));
+        if (queryOk)
+            elementName = "audiosink";
+    }
+    if (!queryOk) {
+        queryOk = (m_videoSink && gst_element_query(m_videoSink.get(), query.get()));
+        if (queryOk)
+            elementName = "videosink";
+    }
+    if (!queryOk) {
+        queryOk = gst_element_query(m_pipeline.get(), query.get());
+        if (queryOk)
+            elementName = "pipeline";
+    }
+    if (queryOk) {
+        gboolean isBuffering = m_isBuffering;
+        gint percentage = 0;
+        gst_query_parse_buffering_percent(query.get(), nullptr, &percentage);
+        if (mode)
+            gst_query_parse_buffering_stats(query.get(), mode, nullptr, nullptr, nullptr);
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+        if (m_isLegacyPlaybin && g_strstr_len(elementName, 6, "queue2"))
+            percentage = correctBufferingPercentage(percentage, m_queue2, m_vidfilter, m_multiqueue, m_bufferingPercentageLastValues);
+#endif
+        isBuffering = m_isLegacyPlaybin ? percentage < 80 : percentage;
+        GST_TRACE_OBJECT(m_pipeline.get(), "[Buffering] m_isBuffering forcefully updated from %d to %d", m_isBuffering, isBuffering);
+        m_isBuffering = isBuffering;
+        GST_INFO("!!! m_isBuffering %s: %s queried, percentage = %d", boolForPrinting(m_isBuffering), elementName, percentage);
+        return true;
+    }
+    return false;
+}
+
 void MediaPlayerPrivateGStreamer::fillTimerFired()
 {
     if (m_didErrorOccur) {
@@ -1261,15 +1446,19 @@ void MediaPlayerPrivateGStreamer::fillTimerFired()
     }
 
     GRefPtr<GstQuery> query = adoptGRef(gst_query_new_buffering(GST_FORMAT_PERCENT));
-    double fillStatus = 100.0;
+    int fillStatus = 100;
     GstBufferingMode mode = GST_BUFFERING_DOWNLOAD;
+    bool isQuerySuccessful = false;
 
-    if (gst_element_query(pipeline(), query.get())) {
-        gst_query_parse_buffering_stats(query.get(), &mode, nullptr, nullptr, nullptr);
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    isQuerySuccessful = queryBufferingPercentage(&mode, m_bufferingPercentage, m_isLegacyPlaybin, m_isBuffering, m_pipeline, m_queue2, m_vidfilter, m_audioSink, m_videoSink, m_multiqueue, m_bufferingPercentageLastValues);
+#else
+    isQuerySuccessful = queryBufferingPercentage(&mode, m_bufferingPercentage, m_isLegacyPlaybin, m_isBuffering, m_pipeline);
+#endif
 
-        int percentage;
-        gst_query_parse_buffering_percent(query.get(), nullptr, &percentage);
-        fillStatus = percentage;
+    if (isQuerySuccessful) {
+        fillStatus = m_bufferingPercentage;
+        GST_DEBUG_OBJECT(pipeline(), "[Buffering] Query succeeded: %d", fillStatus);
     } else if (m_httpResponseTotalSize) {
         GST_DEBUG_OBJECT(pipeline(), "[Buffering] Query failed, falling back to network read position estimation");
         fillStatus = 100.0 * (static_cast<double>(m_networkReadPosition) / static_cast<double>(m_httpResponseTotalSize));
@@ -2195,67 +2384,6 @@ void MediaPlayerPrivateGStreamer::handleMessage(GstMessage* message)
     }
 }
 
-#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
-static int correctBufferingPercentage(int originalBufferingPercentage, GRefPtr<GstElement>& m_queue2, GRefPtr<GstElement>& m_vidfilter,
-    GRefPtr<GstElement>& m_multiqueue)
-{
-    // The Nexus playpump buffers a lot of data. Let's add it as if it had been buffered by the GstQueue2
-    // (only when using in-memory buffering), so we get more realistic percentages.
-    int correctedBufferingPercentage1 = originalBufferingPercentage;
-    int correctedBufferingPercentage2 = originalBufferingPercentage;
-    guint maxSizeBytes = 0;
-
-    // We don't trust the buffering percentage when it's 0, better rely on current-level-bytes and compute a new buffer level accordingly.
-    g_object_get(m_queue2.get(), "max-size-bytes", &maxSizeBytes, nullptr);
-    if (!originalBufferingPercentage) {
-        guint currentLevelBytes = 0;
-        g_object_get(m_queue2.get(), "current-level-bytes", &currentLevelBytes, nullptr);
-        correctedBufferingPercentage1 = currentLevelBytes > maxSizeBytes ? 100 : (int)(currentLevelBytes * 100 / maxSizeBytes);
-
-    }
-
-    if (!correctedBufferingPercentage1) {
-        GST_DEBUG("!!! current-level-bytes is 0, not correcting with Playpump nor with multiqueue, let's better wait a bit for that buffering level to rise");
-        return correctedBufferingPercentage1;
-    }
-
-    guint playpumpBufferedBytes = 0;
-    g_object_get(GST_OBJECT(m_vidfilter.get()), "buffered-bytes", &playpumpBufferedBytes, nullptr);
-
-    guint multiqueueBufferedBytes = 0;
-    if (m_multiqueue) {
-        GUniqueOutPtr<GstStructure> stats;
-        g_object_get(m_multiqueue.get(), "stats", &stats.outPtr(), nullptr);
-        const GValue* queues = gst_structure_get_value(stats.get(), "queues");
-        guint size = gst_value_array_get_size(queues);
-        for (guint i = 0; i < size; i++) {
-            guint bytes = 0;
-            if (gst_structure_get_uint(gst_value_get_structure(gst_value_array_get_value(queues, i)), "bytes", &bytes))
-                multiqueueBufferedBytes += bytes;
-        }
-    }
-
-    // Current-level-bytes seems to be inacurate, so we compute its value from the buffering percentage.
-    size_t currentLevelBytes = (size_t)maxSizeBytes * (size_t)originalBufferingPercentage / (size_t)100
-        + (size_t)playpumpBufferedBytes + (size_t)multiqueueBufferedBytes;
-    correctedBufferingPercentage2 = currentLevelBytes > maxSizeBytes ? 100 : (int)(currentLevelBytes * 100 / maxSizeBytes);
-
-    const char* extraElements = m_multiqueue ? "playpump and multiqueue" : "playpump";
-    if (!originalBufferingPercentage) {
-#ifndef GST_DISABLE_GST_DEBUG
-        GST_DEBUG("[Buffering] Buffering: mode: GST_BUFFERING_STREAM, status: %d%% (corrected to %d%% with current-level-bytes and to %d%% with %s content).",
-            originalBufferingPercentage, correctedBufferingPercentage1, correctedBufferingPercentage2, extraElements);
-#endif
-    } else {
-#ifndef GST_DISABLE_GST_DEBUG
-        GST_DEBUG("[Buffering] Buffering: mode: GST_BUFFERING_STREAM, status: %d%% (corrected to %d%% with %s content).",
-            originalBufferingPercentage, correctedBufferingPercentage2, extraElements);
-#endif
-    }
-    return correctedBufferingPercentage2;
-}
-#endif
-
 void MediaPlayerPrivateGStreamer::processBufferingStats(GstMessage* message)
 {
     GstBufferingMode mode;
@@ -2274,7 +2402,7 @@ void MediaPlayerPrivateGStreamer::processBufferingStats(GstMessage* message)
     // The Nexus playpump buffers a lot of data. Let's add it as if it had been buffered by the GstQueue2
     // (only when using in-memory buffering), so we get more realistic percentages.
     if (mode == GST_BUFFERING_STREAM && m_vidfilter) {
-        m_bufferingPercentage = correctBufferingPercentage(percentage, m_queue2, m_vidfilter, m_multiqueue);
+        m_bufferingPercentage = percentage = correctBufferingPercentage(percentage, m_queue2, m_vidfilter, m_multiqueue, m_bufferingPercentageLastValues);
     } else
 #endif
     {
@@ -2286,21 +2414,31 @@ void MediaPlayerPrivateGStreamer::processBufferingStats(GstMessage* message)
     updateBufferingStatus(mode, percentage);
 }
 
-void MediaPlayerPrivateGStreamer::updateMaxTimeLoaded(double percentage)
+void MediaPlayerPrivateGStreamer::updateMaxTimeLoaded(int percentage)
 {
     MediaTime mediaDuration = durationMediaTime();
     if (!mediaDuration)
         return;
 
-    m_maxTimeLoaded = MediaTime(percentage * static_cast<double>(toGstUnsigned64Time(mediaDuration)) / 100, GST_SECOND);
+    m_maxTimeLoaded = MediaTime(double(percentage) * static_cast<double>(toGstUnsigned64Time(mediaDuration)) / 100, GST_SECOND);
     GST_DEBUG_OBJECT(pipeline(), "[Buffering] Updated maxTimeLoaded: %s", toString(m_maxTimeLoaded).utf8().data());
 }
 
-void MediaPlayerPrivateGStreamer::updateBufferingStatus(GstBufferingMode mode, double percentage)
+void MediaPlayerPrivateGStreamer::updateBufferingStatus(GstBufferingMode mode, int percentage)
 {
+#ifndef GST_DISABLE_GST_DEBUG
+    GUniquePtr<char> modeString(g_enum_to_string(GST_TYPE_BUFFERING_MODE, mode));
+    GST_DEBUG_OBJECT(pipeline(), "!!! [Buffering] mode: %s, percentage: %d", modeString.get(), percentage);
+#endif
+
     bool wasBuffering = m_isBuffering;
 
-    m_didDownloadFinish = percentage == 100;
+    int fullPercentage = 100;
+#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
+    if (mode == GST_BUFFERING_STREAM)
+        fullPercentage = 80;
+#endif
+    m_didDownloadFinish = (percentage >= fullPercentage);
 
     if (!m_didDownloadFinish) {
         GST_INFO("!!! m_isBuffering true: !m_didDownloadFinish");
@@ -2314,6 +2452,7 @@ void MediaPlayerPrivateGStreamer::updateBufferingStatus(GstBufferingMode mode, d
         updateMaxTimeLoaded(percentage);
 
         m_bufferingPercentage = percentage;
+        GST_DEBUG("m_didDownloadFinish: %s, wasBuffering: %s", boolForPrinting(m_didDownloadFinish), boolForPrinting(wasBuffering));
         if (m_didDownloadFinish || !wasBuffering)
             updateStates();
 
@@ -2660,54 +2799,14 @@ void MediaPlayerPrivateGStreamer::updateStates()
         case GST_STATE_PAUSED:
             FALLTHROUGH;
         case GST_STATE_PLAYING:
+            GST_DEBUG("!!! Evaluating buffering level. m_isBuffering (current): %s", boolForPrinting(m_isBuffering));
             if (m_isBuffering) {
-                GRefPtr<GstQuery> query = adoptGRef(gst_query_new_buffering(GST_FORMAT_PERCENT));
-
-                m_isBuffering = m_bufferingPercentage < 100;
-                GST_INFO("!!! m_isBuffering %s: m_bufferingPercentage = %d", boolForPrinting(m_isBuffering), m_bufferingPercentage);
-
-                // !!! This piece of code is really strange. If the queried buffering percentage is zero, then there's no buffering. If it's
-                // greater than zero (even 100%), then there's buffering. I think it should be "no buffering only when it's 100%".
-                bool queryOk = false;
-                const char* elementName = "<undefined>";
-
 #if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
-                if (!queryOk) {
-                    queryOk = (m_queue2 && gst_element_query(m_queue2.get(), query.get()));
-                    if (queryOk)
-                        elementName = "queue2";
-                }
+                queryBufferingPercentage(nullptr, m_bufferingPercentage, m_isLegacyPlaybin, m_isBuffering, m_pipeline, m_queue2, m_vidfilter, m_audioSink, m_videoSink, m_multiqueue, m_bufferingPercentageLastValues);
+#else
+                queryBufferingPercentage(nullptr, m_bufferingPercentage, m_isLegacyPlaybin, m_isBuffering, m_pipeline);
 #endif
-
-                if (!queryOk) {
-                    queryOk = (m_audioSink && gst_element_query(m_audioSink.get(), query.get()));
-                    if (queryOk)
-                        elementName = "audiosink";
-                }
-                if (!queryOk) {
-                    queryOk = (m_videoSink && gst_element_query(m_videoSink.get(), query.get()));
-                    if (queryOk)
-                        elementName = "videosink";
-                }
-                if (!queryOk) {
-                    queryOk = gst_element_query(m_pipeline.get(), query.get());
-                    if (queryOk)
-                        elementName = "pipeline";
-                }
-                if (queryOk) {
-                    gboolean isBuffering = m_isBuffering;
-                    gint percentage = 0;
-                    gst_query_parse_buffering_percent(query.get(), &percentage, nullptr);
-#if PLATFORM(BCM_NEXUS) || PLATFORM(BROADCOM)
-                    if (m_isLegacyPlaybin && g_strstr_len(elementName, 6, "queue2"))
-                        percentage = correctBufferingPercentage(percentage, m_queue2, m_vidfilter, m_multiqueue);
-#endif
-                    isBuffering = m_isLegacyPlaybin ? percentage < 100 : percentage;
-                    GST_TRACE_OBJECT(pipeline(), "[Buffering] m_isBuffering forcefully updated from %d to %d", m_isBuffering, isBuffering);
-                    m_isBuffering = isBuffering;
-                    GST_INFO("!!! m_isBuffering %s: %s queried, percentage = %d", boolForPrinting(m_isBuffering), elementName, percentage);
-                }
-
+                GST_DEBUG("!!! Evaluated buffering level. m_isBuffering (after query): %s", boolForPrinting(m_isBuffering));
                 if (!m_isBuffering) {
                     GST_INFO_OBJECT(pipeline(), "[Buffering] Complete.");
                     m_readyState = MediaPlayer::ReadyState::HaveEnoughData;
@@ -2796,8 +2895,10 @@ void MediaPlayerPrivateGStreamer::updateStates()
         else if (m_currentState == GST_STATE_PLAYING)
             m_isPaused = false;
 
-        if (!m_isPaused && m_playbackRate)
+        if (!m_isPaused && m_playbackRate) {
+            GST_INFO_OBJECT(pipeline(), "[Buffering] Restarting playback (change no preroll)");
             changePipelineState(GST_STATE_PLAYING);
+        }
 
         m_networkState = MediaPlayer::NetworkState::Loading;
 
@@ -2933,6 +3034,7 @@ bool MediaPlayerPrivateGStreamer::loadNextLocation()
             if (state <= GST_STATE_READY) {
                 // Set the new uri and start playing.
                 setPlaybinURL(newUrl);
+                GST_INFO_OBJECT(pipeline(), "[Buffering] Restarting playback (loadNextLocation)");
                 changePipelineState(GST_STATE_PLAYING);
                 return true;
             }

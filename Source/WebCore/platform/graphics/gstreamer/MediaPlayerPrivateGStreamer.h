@@ -29,6 +29,7 @@
 #include "AbortableTaskQueue.h"
 #include "GStreamerCommon.h"
 #include "GStreamerEMEUtilities.h"
+#include "GStreamerQuirks.h"
 #include "ImageOrientation.h"
 #include "Logging.h"
 #include "MainThreadNotifier.h"
@@ -187,6 +188,8 @@ public:
     bool performTaskAtTime(Function<void()>&&, const MediaTime&) override;
     void isLoopingChanged() final;
 
+    GstElement* pipeline() const { return m_pipeline.get(); }
+
 #if USE(TEXTURE_MAPPER_GL)
     PlatformLayer* platformLayer() const override;
 #if PLATFORM(WIN)
@@ -303,11 +306,10 @@ protected:
     virtual void sourceSetup(GstElement*);
     virtual void updatePlaybackRate();
 
-#if USE(GSTREAMER_HOLEPUNCH)
+    bool isHolePunchRenderingEnabled() const;
     GstElement* createHolePunchVideoSink();
     void pushNextHolePunchBuffer();
-    bool shouldIgnoreIntrinsicSize() final { return true; }
-#endif
+    bool shouldIgnoreIntrinsicSize() final;
 
 #if USE(TEXTURE_MAPPER_DMABUF)
     GstElement* createVideoSinkDMABuf();
@@ -333,8 +335,6 @@ protected:
     GstElement* videoSink() const { return m_videoSink.get(); }
 
     void setStreamVolumeElement(GstStreamVolume*);
-
-    GstElement* pipeline() const { return m_pipeline.get(); }
 
     void repaint();
     void cancelRepaint(bool destroying = false);
@@ -541,9 +541,8 @@ private:
     void configureAudioDecoder(GstElement*);
     void configureVideoDecoder(GstElement*);
     void configureElement(GstElement*);
-#if PLATFORM(BROADCOM) || USE(WESTEROS_SINK) || PLATFORM(AMLOGIC) || PLATFORM(REALTEK)
+
     void configureElementPlatformQuirks(GstElement*);
-#endif
 
     void setPlaybinURL(const URL& urlString);
 
@@ -678,10 +677,7 @@ private:
 
     RefPtr<PlatformMediaResourceLoader> m_loader;
 
-#if USE(GSTREAMER_HOLEPUNCH)
-    RefPtr<GStreamerHolePunchHost> m_gstreamerHolePunchHost;
-    Lock m_holePunchLock;
-#endif
+    RefPtr<GStreamerQuirksManager> m_quirksManagerForTesting;
 };
 
 }
